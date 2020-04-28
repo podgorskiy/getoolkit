@@ -2,6 +2,7 @@ import anntoolkit
 import imageio
 import os
 import pickle
+import numpy as np
 
 
 class App(anntoolkit.App):
@@ -18,6 +19,7 @@ class App(anntoolkit.App):
         if os.path.exists('save.pth'):
             with open('save.pth', 'rb') as f:
                 self.annotation = pickle.load(f)
+        self.moving = None
 
     def load_next(self):
         self.iter += 1
@@ -35,17 +37,41 @@ class App(anntoolkit.App):
         k = self.paths[self.iter]
         self.text(k, 10, 10)
         if k in self.annotation:
-            for p in self.annotation[k]:
-                self.point(*p, (255, 0, 0, 250))
+            self.text("Points count %d" % len(self.annotation[k]), 10, 50)
+            for i, p in enumerate(self.annotation[k]):
+                if i == self.moving:
+                    self.point(*p, (0, 255, 0, 250))
+                else:
+                    self.point(*p, (255, 0, 0, 250))
 
     def on_mouse_button(self, down, x, y, lx, ly):
+        k = self.paths[self.iter]
+        if down:
+            if k in self.annotation:
+                points = np.asarray(self.annotation[k])
+                point = np.asarray([[lx, ly]])
+                d = points - point
+                d = np.linalg.norm(d, axis=1)
+                i = np.argmin(d)
+                if d[i] < 2:
+                    self.moving = i
+                    print(i, d[i])
+
         if not down:
-            k = self.paths[self.iter]
             if k not in self.annotation:
                 self.annotation[k] = []
-            self.annotation[k].append((lx, ly))
+            if self.moving is not None:
+                self.annotation[k][self.moving] = (lx, ly)
+                self.moving = None
+            else:
+                self.annotation[k].append((lx, ly))
             with open('save.pth', 'wb') as f:
                 pickle.dump(self.annotation, f)
+
+    def on_mouse_position(self, x, y, lx, ly):
+        if self.moving is not None:
+            k = self.paths[self.iter]
+            self.annotation[k][self.moving] = (lx, ly)
 
     def on_keyboard(self, key, down, mods):
         if down:

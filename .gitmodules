@@ -16,3 +16,6 @@
 [submodule "libs/doctest"]
 	path = libs/doctest
 	url = https://github.com/onqtam/doctest.git
+[submodule "libs/SimpleText"]
+	path = libs/SimpleText
+	url = https://github.com/podgorskiy/SimpleText.git
