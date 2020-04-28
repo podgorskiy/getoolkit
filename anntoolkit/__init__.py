@@ -21,8 +21,8 @@ def _handle_debugging():
     # if running debug session
     if os.path.exists("cmake-build-debug/"):
         print('Running Debugging session!')
-        sys.path.insert(0, "cmake-build-debug/")
-        # sys.path.insert(0, "cmake-build-release/")
+        # sys.path.insert(0, "cmake-build-debug/")
+        sys.path.insert(0, "cmake-build-release/")
 
 
 _handle_debugging()
@@ -30,6 +30,7 @@ _handle_debugging()
 
 from _anntoolkit import *
 from anntoolkit.generate_mipmaps import generate_mipmaps
+from anntoolkit.app import App
 
 # A hack to force sphinx to do the right thing
 if 'sphinx' in sys.modules:
@@ -40,3 +41,15 @@ if 'sphinx' in sys.modules:
 else:
     del os
     del sys
+
+
+KeyEscape = 256
+KeyEnter = 257
+KeyTab = 258
+KeyBackspace = 259
+KeyInsert = 260
+KeyDelete = 261
+KeyRight = 262
+KeyLeft = 263
+KeyDown = 264
+KeyUp = 265

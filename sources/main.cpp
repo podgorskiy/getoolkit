@@ -4,6 +4,7 @@
  */
 #include "Camera2D.h"
 #include "DebugRenderer.h"
+#include "simpletext.h"
 #include "GLDebugMessage.h"
 #include "Shader.h"
 #include "VertexSpec.h"
@@ -161,7 +162,10 @@ public:
 			throw std::runtime_error("Wrong number of dimensions. Should be either 2 or 3");
 		}
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		if (ims.size() > 1)
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		else
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -174,7 +178,7 @@ public:
 };
 
 typedef std::shared_ptr<Image> ImagePtr;
-
+typedef std::shared_ptr<SimpleText> SimpleTextPtr;
 
 class Context
 {
@@ -205,6 +209,8 @@ public:
 
 	int GetHeight() const;
 
+	void Point(float x, float y, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color) const;
+
 	~Context();
 
 	GLFWwindow* m_window = nullptr;
@@ -223,6 +229,7 @@ public:
 	Render::ProgramPtr m_program;
 	Render::Uniform u_modelViewProj;
 	Render::Uniform u_texture;
+	SimpleTextPtr m_text;
 };
 
 struct Vertex
@@ -275,8 +282,11 @@ void Context::Init(int width, int height, const std::string& name)
 			ctx->Resize(width, height);
 		});
 
-		glfwSetKeyCallback(m_window, [](GLFWwindow*, int key, int, int action, int mods)
+		glfwSetKeyCallback(m_window, [](GLFWwindow* window, int key, int, int action, int mods)
 		{
+			Context* ctx = static_cast<Context*>(glfwGetWindowUserPointer(window));
+
+			ctx->keyboard_callback(key, action, mods);
 		});
 
 		glfwSetCharCallback(m_window, [](GLFWwindow*, unsigned int c)
@@ -340,7 +350,7 @@ void Context::Init(int width, int height, const std::string& name)
 
 			vec3 sample(vec2 q)
 			{
-				vec4 color = texture2D(u_texture, q);
+				vec4 color = texture2D(u_texture, q, -0.3);
 				return color.rgb;
 			}
 
@@ -373,6 +383,8 @@ void Context::Init(int width, int height, const std::string& name)
 		m_buff.FillBuffers(vertices.data(), vertices.size(), sizeof(glm::vec2), indices.data(), indices.size(), 4);
 
 		m_spec = Render::VertexSpecMaker().PushType<glm::vec2>("a_position");
+
+		m_text.reset(new SimpleText);
 	}
 }
 
@@ -420,16 +432,6 @@ Context::~Context()
 
 void Context::Render()
 {
-	if (!m_image)
-	{
-		throw std::runtime_error("No image assigned");
-	}
-	glfwMakeContextCurrent(m_window);
-	Render::debug_guard<> m_guard;
-	glViewport(0, 0, m_width, m_height);
-	glClear(GL_COLOR_BUFFER_BIT);
-	glEnable(GL_FRAMEBUFFER_SRGB);
-
 	double x, y;
 	glfwGetCursorPos(m_window, &x, &y);
 	glm::vec2 cursorposition = glm::vec2(x, y);
@@ -460,7 +462,6 @@ void Context::Render()
 	}
 
 	{
-		nvgBeginFrame(vg, m_width, m_height, 1.0f);
 		auto transform = m_camera.GetCanvasToWorld();
 
 		glm::vec2 pos = transform * glm::vec3(-0.5, -0.5, 1);
@@ -484,6 +485,9 @@ void Context::Render()
 		nvgEndFrame(vg);
 	}
 
+	m_text->EnableBlending(true);
+	m_text->Render();
+
 	glfwSwapInterval(1);
 	glfwSwapBuffers(m_window);
 	glfwPollEvents();
@@ -492,6 +496,16 @@ void Context::Render()
 
 void Context::NewFrame()
 {
+	if (!m_image)
+	{
+		throw std::runtime_error("No image assigned");
+	}
+	glfwMakeContextCurrent(m_window);
+	Render::debug_guard<> m_guard;
+	glViewport(0, 0, m_width, m_height);
+	glClear(GL_COLOR_BUFFER_BIT);
+	glEnable(GL_FRAMEBUFFER_SRGB);
+	nvgBeginFrame(vg, m_width, m_height, 1.0f);
 }
 
 
@@ -531,6 +545,32 @@ int Context::GetHeight() const
 	return m_height;
 }
 
+void Context::Point(float x, float y, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color) const
+{
+	auto transform = m_camera.GetCanvasToWorld();
+
+	glm::vec2 point_pos_local = glm::vec2(x, y);
+	glm::vec2 point_pos = transform * glm::vec3(point_pos_local, 1);
+
+	nvgBeginPath(vg);
+	nvgCircle(vg, point_pos.x, point_pos.y, 5.0f);
+	nvgFillColor(vg, nvgRGBA(std::get<0>(color), std::get<1>(color), std::get<2>(color), std::get<3>(color)));
+	nvgFill(vg);
+	nvgBeginPath(vg);
+
+	float point_size = 5.0;
+
+	nvgCircle(vg, point_pos.x, point_pos.y, point_size * 6);
+	nvgCircle(vg, point_pos.x, point_pos.y, point_size);
+	nvgPathWinding(vg, NVG_HOLE);
+	NVGpaint rshadowPaint = nvgBoxGradient(
+			vg, point_pos.x - point_size, point_pos.y - point_size, point_size * 2, point_size * 2, point_size,
+			point_size * 0.3,
+			{0, 0, 0, 1.0f}, {0, 0, 0, 0});
+	nvgFillPaint(vg, rshadowPaint);
+	nvgFill(vg);
+}
+
 
 PYBIND11_MODULE(_anntoolkit, m) {
 	m.doc() = "anntoolkit";
@@ -556,6 +596,9 @@ PYBIND11_MODULE(_anntoolkit, m) {
 		.def("set_mouse_button_callback", [](Context& self, py::function f){
 			self.mouse_button_callback = f;
 		})
+		.def("set_mouse_button_callback", [](Context& self, py::function f){
+			self.mouse_button_callback = f;
+		})
 		.def("set_mouse_position_callback", [](Context& self, py::function f){
 			self.mouse_position_callback = f;
 		})
@@ -568,12 +611,16 @@ PYBIND11_MODULE(_anntoolkit, m) {
 		})
 		.def("set_keyboard_callback", [](Context& self, py::function f){
 			self.keyboard_callback = f;
-		});
+		})
+		.def("text", [](Context& self, const char* str, int x, int y)
+		{
+			self.m_text->Label(str, x, y);
+		})
+		.def("point",  &Context::Point);
 
 	py::class_<Image, std::shared_ptr<Image> >(m, "Image")
 			.def(py::init<std::vector<ndarray_uint8>>(), "")
 			.def("grayscale_to_alpha", &Image::GrayScaleToAlpha, "For grayscale images, uses values as alpha")
 			.def_readonly("width", &Image::m_width)
 			.def_readonly("height", &Image::m_height);
-
 }
