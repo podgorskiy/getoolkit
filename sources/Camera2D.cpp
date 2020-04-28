@@ -16,9 +16,9 @@ Camera2D::Camera2D()
 glm::mat3 Camera2D::GetCanvasToWorld() const
 {
 	return 
-		  glm::mat3(1.0, 0, 0, 0, -1.0, 0, 0, 0, 1.0) 
+		  glm::mat3(1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0)
 		* glm::mat3(1.0 / m_fov, 0, 0, 0, 1.0 / m_fov, 0, 0, 0, 1.0) 
-		* glm::mat3(1.0, 0, 0, 0, 1.0, 0, m_pos.x, -m_pos.y, 1.0);
+		* glm::mat3(1.0, 0, 0, 0, 1.0, 0, m_pos.x, m_pos.y, 1.0);
 }
 
 glm::mat3 Camera2D::GetWorldToCanvas() const
@@ -28,7 +28,7 @@ glm::mat3 Camera2D::GetWorldToCanvas() const
 
 void Camera2D::Move(float x, float y)
 {
-	m_mouseNow = glm::ivec2(x, -y);
+	m_mouseNow = glm::ivec2(x, y);
 	if (m_panningActive)
 	{
 		m_delta += m_mouseNow - m_mouseLast;
@@ -96,8 +96,16 @@ void Camera2D::Scroll(float x)
 
 	glm::vec2 canvasPosNew = GetWorldToCanvas() * glm::vec3(m_mouseNow, 1.0f);
 	glm::vec2 deltaPos = canvasPosOld - canvasPosNew;
-	deltaPos.y *= -1.0;
 	m_pos -= deltaPos;
+}
+
+glm::mat4 promote(const glm::mat3& x)
+{
+	glm::mat4 tr(1.0f);
+	tr[0] = glm::vec4(x[0], 0);
+	tr[1] = glm::vec4(x[1], 0);
+	tr[3] = glm::vec4(glm::vec2(x[2]), 0.0f, 1.0f);
+	return tr;
 }
 
 void Camera2D::UpdateViewProjection(int w, int h)
@@ -117,13 +125,9 @@ void Camera2D::UpdateViewProjection(int w, int h)
 	glm::mat3 c2w = GetCanvasToWorld();
 	glm::mat3 w2c = GetWorldToCanvas();
 	glm::vec2 _pos = c2w * glm::vec3(0, 0, 1.0);
-	//m_pos = glm::round(m_pos);
-	//m_pos = w2c * glm::vec3(m_pos, 1.0);
-	//m_pos.x = -m_pos.x;
-	m_view = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f / height / m_fov)) * glm::translate(glm::mat4(1.0f), glm::vec3(m_pos, 0.0f));
-	float aspect = width * 1.0f / height;
-	const auto m = glm::translate(glm::mat4(1.0f), glm::vec3(-1.0, 1.0, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(2.0, 2.0, 0.0));
-	m_proj = m * glm::scale(glm::mat4(1.0f), glm::vec3(1.0f / aspect, 1.0f, 1.0f));
+	m_view = promote(c2w);
+	const auto m = glm::translate(glm::mat4(1.0f), glm::vec3(-1.0, 1.0, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(2.0, -2.0, 0.0));
+	m_proj = m * glm::scale(glm::mat4(1.0f), glm::vec3(1.0f / width, 1.0f / height, 1.0f));
 }
 
 
