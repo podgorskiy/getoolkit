@@ -416,8 +416,12 @@ static int glnvg__renderCreate(void* uptr)
 			{
 				// Calculate gradient color using box gradient
 				vec2 pt = (paintMat * vec3(v_pos,1.0)).xy;
-				float d = clamp((sdroundrect(pt, extent, radius) + feather*0.5) / feather, 0.0, 1.0);
-				vec4 color = mix(innerCol,outerCol,d);
+				//float d = clamp((sdroundrect(pt, extent, radius) + feather*0.5) / feather, 0.0, 1.0);
+				float d = sdroundrect(pt, extent, radius) / feather;
+				innerCol.xyz = pow(innerCol.xyz, vec3(2.2));
+				outerCol.xyz = pow(outerCol.xyz, vec3(2.2));
+				float f = 1.0 - atan(1.0 / (d)) / 3.14;
+				vec4 color = mix(innerCol, outerCol, f);
 
 				// Combine alpha
 				color *= strokeAlpha * scissor;
@@ -428,6 +432,7 @@ static int glnvg__renderCreate(void* uptr)
 				// Calculate color fron texture
 				vec2 pt = (paintMat * vec3(v_pos,1.0)).xy / extent;
 				vec4 color = texture2D(u_tex, pt);
+				color.xyz = pow(color.xyz, vec3(2.2));
 
 				if (texType == 1) color = vec4(color.xyz*color.w,color.w);
 				else if (texType == 2) color = vec4(color.x);

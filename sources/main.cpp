@@ -4,6 +4,7 @@
  */
 #include "Camera2D.h"
 #include "DebugRenderer.h"
+#include "GLDebugMessage.h"
 #include "Shader.h"
 #include "VertexSpec.h"
 #include "VertexBuffer.h"
@@ -34,8 +35,20 @@ public:
 	Image& operator=(const Image&) = delete;
 	Image(const Image&) = delete;
 
-	Image(ndarray_uint8 ndarray): Image(ndarray.request())
-	{}
+	Image()
+	{
+		glGenTextures(1, &m_textureHandle);
+		m_width = -1;
+		m_height = -1;
+	}
+
+	Image(std::vector<ndarray_uint8> ims)
+	{
+		glGenTextures(1, &m_textureHandle);
+		m_width = -1;
+		m_height = -1;
+		SetImage(ims);
+	}
 
 	~Image()
 	{
@@ -62,14 +75,12 @@ public:
 
 	ssize_t m_width;
 	ssize_t m_height;
-private:
-	Image(const py::buffer_info& ndarray_info)
-	{
-		glGenTextures(1, &m_textureHandle);
-		glBindTexture(GL_TEXTURE_2D, m_textureHandle);
 
-		m_width = -1;
-		m_height = -1;
+	void SetImage(std::vector<ndarray_uint8> ims)
+	{
+		Render::debug_guard<> m_guard;
+		const py::buffer_info& ndarray_info = ims[0].request();
+		glBindTexture(GL_TEXTURE_2D, m_textureHandle);
 
 		GLint backup;
 		glGetIntegerv(GL_UNPACK_ALIGNMENT, &backup);
@@ -84,34 +95,57 @@ private:
 		{
 			m_width = ndarray_info.shape[1];
 			m_height = ndarray_info.shape[0];
-
 			glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask_R);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, m_width, m_height, 0, GL_RED, GL_UNSIGNED_BYTE, ndarray_info.ptr);
+			int mipmap = 0;
+			for (auto im: ims)
+			{
+				glTexImage2D(GL_TEXTURE_2D, mipmap, GL_R8, im.request().shape[1], im.request().shape[0], 0, GL_RED, GL_UNSIGNED_BYTE, im.request().ptr);
+				mipmap += 1;
+			}
 		}
 		else if (ndarray_info.ndim == 3)
 		{
 			m_width = ndarray_info.shape[1];
 			m_height = ndarray_info.shape[0];
-
 			if (ndarray_info.shape[2] == 1)
 			{
 				glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask_R);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, m_width, m_height, 0, GL_RGB, GL_UNSIGNED_BYTE, ndarray_info.ptr);
+				int mipmap = 0;
+				for (auto im: ims)
+				{
+					glTexImage2D(GL_TEXTURE_2D, mipmap, GL_R8, im.request().shape[1], im.request().shape[0], 0, GL_RGB, GL_UNSIGNED_BYTE, im.request().ptr);
+					mipmap += 1;
+				}
 			}
 			else if (ndarray_info.shape[2] == 2)
 			{
 				glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask_RG);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8, m_width, m_height, 0, GL_RG, GL_UNSIGNED_BYTE, ndarray_info.ptr);
+				int mipmap = 0;
+				for (auto im: ims)
+				{
+					glTexImage2D(GL_TEXTURE_2D, mipmap, GL_RG8, im.request().shape[1], im.request().shape[0], 0, GL_RG, GL_UNSIGNED_BYTE, im.request().ptr);
+					mipmap += 1;
+				}
 			}
 			else if (ndarray_info.shape[2] == 3)
 			{
 				glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask_RGB);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8, m_width, m_height, 0, GL_RGB, GL_UNSIGNED_BYTE, ndarray_info.ptr);
+				int mipmap = 0;
+				for (auto im: ims)
+				{
+					glTexImage2D(GL_TEXTURE_2D, mipmap, GL_SRGB8, im.request().shape[1], im.request().shape[0], 0, GL_RGB, GL_UNSIGNED_BYTE, im.request().ptr);
+					mipmap += 1;
+				}
 			}
 			else if (ndarray_info.shape[2] == 4)
 			{
 				glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask_RGBA);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, m_width, m_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, ndarray_info.ptr);
+				int mipmap = 0;
+				for (auto im: ims)
+				{
+					glTexImage2D(GL_TEXTURE_2D, mipmap, GL_SRGB8_ALPHA8, im.request().shape[1], im.request().shape[0], 0, GL_RGBA, GL_UNSIGNED_BYTE, im.request().ptr);
+					mipmap += 1;
+				}
 			}
 			else
 			{
@@ -127,9 +161,7 @@ private:
 			throw std::runtime_error("Wrong number of dimensions. Should be either 2 or 3");
 		}
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
-
-		glGenerateMipmap(GL_TEXTURE_2D);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -179,6 +211,7 @@ public:
 	int m_width;
 	int m_height;
 	py::function mouse_button_callback;
+	py::function mouse_position_callback;
 	py::function keyboard_callback;
 
 	Camera2D m_camera;
@@ -226,6 +259,7 @@ void Context::Init(int width, int height, const std::string& name)
 
 		glfwMakeContextCurrent(m_window);
 		gl3wInit();
+		Render::debug_guard<> m_guard;
 		m_dr.Init();
 
 		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -268,6 +302,16 @@ void Context::Init(int width, int height, const std::string& name)
 				glm::vec2 cursorposition = glm::vec2(x, y);
 				auto local = glm::vec2(ctx->m_camera.GetWorldToCanvas() * glm::vec3(cursorposition, 1.0f));
 				ctx->mouse_button_callback(action == GLFW_PRESS, float(x), float(y), local.x, local.y);
+			}
+		});
+		glfwSetCursorPosCallback(m_window, [](GLFWwindow* window, double x, double y)
+		{
+			Context* ctx = static_cast<Context*>(glfwGetWindowUserPointer(window));
+			if (ctx->mouse_position_callback)
+			{
+				glm::vec2 cursorposition = glm::vec2(x, y);
+				auto local = glm::vec2(ctx->m_camera.GetWorldToCanvas() * glm::vec3(cursorposition, 1.0f));
+				ctx->mouse_position_callback(float(x), float(y), local.x, local.y);
 			}
 		});
 
@@ -335,6 +379,10 @@ void Context::Init(int width, int height, const std::string& name)
 
 void Context::Recenter(RECENTER r)
 {
+	if (!m_image)
+	{
+		throw std::runtime_error("No image assigned");
+	}
 	auto size = m_image->GetSize();
 	if (r == RECENTER::FIT_DOCUMENT)
 	{
@@ -372,7 +420,12 @@ Context::~Context()
 
 void Context::Render()
 {
+	if (!m_image)
+	{
+		throw std::runtime_error("No image assigned");
+	}
 	glfwMakeContextCurrent(m_window);
+	Render::debug_guard<> m_guard;
 	glViewport(0, 0, m_width, m_height);
 	glClear(GL_COLOR_BUFFER_BIT);
 	glEnable(GL_FRAMEBUFFER_SRGB);
@@ -387,8 +440,10 @@ void Context::Render()
 	auto size = m_image->GetSize();
 
 	auto transform = m_camera.GetTransform();
-	glm::mat4 model = glm::scale(glm::mat4(1.0f), glm::vec3(size.x / 2.0f,  size.y / 2.0f, 0.0f)) * glm::translate(glm::mat4(1.0f), glm::vec3(1.0, 1.0, 0.0f));
-	// Render::DrawRect(m_dr, glm::vec2(-1.0f), glm::vec2(1.0f), transform * model);
+	glm::mat4 model = glm::scale(glm::mat4(1.0f), glm::vec3((size.x + 1) / 2.0f,  (size.y + 1) / 2.0f, 0.0f)) * glm::translate(glm::mat4(1.0f), glm::vec3(1.0, 1.0, 0.0f));
+	model[3].x -= 0.5;
+	model[3].y -= 0.5;
+	// Render::DrawRect(m_dr, glm::vec2(-1.0f), glm::vec&Image::2(1.0f), transform * model);
 	{
 		m_program->Use();
 		u_modelViewProj.ApplyValue(transform * model);
@@ -408,8 +463,8 @@ void Context::Render()
 		nvgBeginFrame(vg, m_width, m_height, 1.0f);
 		auto transform = m_camera.GetCanvasToWorld();
 
-		glm::vec2 pos = transform * glm::vec3(0, 0, 1);
-		size = transform * glm::vec3(size, 0);
+		glm::vec2 pos = transform * glm::vec3(-0.5, -0.5, 1);
+		size = transform * glm::vec3(size + 1.0f, 0);
 
 
 		float margin = size.x * 0.3;
@@ -442,6 +497,10 @@ void Context::NewFrame()
 
 void Context::Resize(int width, int height)
 {
+	if (!m_image)
+	{
+		throw std::runtime_error("No image assigned");
+	}
 	auto oldWindowBufferSize = glm::vec2(m_width, m_height);
 	m_width = width;
 	m_height = height;
@@ -497,12 +556,22 @@ PYBIND11_MODULE(_anntoolkit, m) {
 		.def("set_mouse_button_callback", [](Context& self, py::function f){
 			self.mouse_button_callback = f;
 		})
+		.def("set_mouse_position_callback", [](Context& self, py::function f){
+			self.mouse_position_callback = f;
+		})
+		.def("get_mouse_position", [](Context& self){
+				double x, y;
+				glfwGetCursorPos(self.m_window, &x, &y);
+				glm::vec2 cursorposition = glm::vec2(x, y);
+				auto local = glm::vec2(self.m_camera.GetWorldToCanvas() * glm::vec3(cursorposition, 1.0f));
+				return std::make_tuple(float(x), float(y), local.x, local.y);
+		})
 		.def("set_keyboard_callback", [](Context& self, py::function f){
 			self.keyboard_callback = f;
 		});
 
 	py::class_<Image, std::shared_ptr<Image> >(m, "Image")
-			.def(py::init<ndarray_uint8>(), "Constructs Image object from ndarray, PIL Image, numpy array, etc.")
+			.def(py::init<std::vector<ndarray_uint8>>(), "")
 			.def("grayscale_to_alpha", &Image::GrayScaleToAlpha, "For grayscale images, uses values as alpha")
 			.def_readonly("width", &Image::m_width)
 			.def_readonly("height", &Image::m_height);
