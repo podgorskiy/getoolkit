@@ -83,10 +83,14 @@ class App(anntoolkit.App):
                 k = self.paths[self.iter]
                 if k in self.annotation:
                     del self.annotation[k]
+                with open('save.pth', 'wb') as f:
+                    pickle.dump(self.annotation, f)
             if key == anntoolkit.KeyBackspace:
                 k = self.paths[self.iter]
                 if k in self.annotation and len(self.annotation[k]) > 0:
                     self.annotation[k] = self.annotation[k][:-1]
+                with open('save.pth', 'wb') as f:
+                    pickle.dump(self.annotation, f)
 
 
 app = App()
