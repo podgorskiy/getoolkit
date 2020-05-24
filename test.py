@@ -19,6 +19,9 @@ class App(anntoolkit.App):
         if os.path.exists('save.pth'):
             with open('save.pth', 'rb') as f:
                 self.annotation = pickle.load(f)
+        if os.path.exists('save_2.pth'):
+            with open('save_2.pth', 'rb') as f:
+                self.annotation = pickle.load(f)
         self.moving = None
 
     def load_next(self):

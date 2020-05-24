@@ -116,16 +116,22 @@ def align(img, parts, dst_dir='realign1024x1024', output_size=1024, transform_si
 
 item_idx = 0
 
-pickles = ['save_1.pth', 'save.pth']
+pickles = ['save.pth']
 
 for p in pickles:
     with open(p, 'rb') as f:
         annotation = pickle.load(f)
 
     for filename in os.listdir('images'):
+        if not os.path.isfile('images/' + filename):
+            continue
         img = np.asarray(Image.open('images/' + filename))
-        if img.shape[2] == 4:
-            img = img[:, :, :3]
+        try:
+            if img.shape[2] == 4:
+                img = img[:, :, :3]
+        except IndexError:
+            print('error %s' % filename)
+            continue
 
         if filename in annotation:
             l = annotation[filename]
