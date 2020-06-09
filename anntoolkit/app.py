@@ -68,10 +68,16 @@ class App:
         pass
         # print(chr(key), down, mods)
 
-    def set_image(self, image):
+    def set_image(self, image, recenter=True):
         # m = anntoolkit.generate_mipmaps(image)
         # self._ctx.set(anntoolkit.Image(m))
-        self._ctx.set(anntoolkit.Image([image]))
+        if recenter:
+            self._ctx.set(anntoolkit.Image([image]))
+        else:
+            self._ctx.set_without_recenter(anntoolkit.Image([image]))
+
+    def recenter(self):
+        self._ctx.recenter()
 
     def text(self, s, x, y):
         self._ctx.text(s, x, y)

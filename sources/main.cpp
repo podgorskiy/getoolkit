@@ -588,6 +588,14 @@ PYBIND11_MODULE(_anntoolkit, m) {
 				self.m_image = im;
 				self.Recenter(Context::FIT_DOCUMENT);
 			})
+		.def("set_without_recenter", [](Context& self, ImagePtr im)
+			{
+				self.m_image = im;
+			})
+		.def("recenter", [](Context& self)
+			{
+				self.Recenter(Context::FIT_DOCUMENT);
+			})
 		.def("__enter__", &Context::NewFrame)
 		.def("__exit__", [](Context& self, py::object, py::object, py::object)
 			{

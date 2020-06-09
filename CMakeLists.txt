@@ -63,7 +63,6 @@ elseif(APPLE)
     set(RELEASE_OPTIONS -Ofast )
 else()
     set(COMMON_OPTIONS -DHAVE_PTHREAD  -lstdc++fs)
-    set(DEBUG_OPTIONS -g)
     set(RELEASE_OPTIONS -O2)
 endif()
 
