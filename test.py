@@ -47,6 +47,12 @@ class App(anntoolkit.App):
                 else:
                     self.point(*p, (255, 0, 0, 250))
 
+            n = 2
+            boxes = [self.annotation[k][i:i + n] for i in range(0, len(self.annotation[k]), n)]
+            for box in boxes:
+                if len(box) == 2:
+                    self.box(box, (0, 255, 0, 250), (100, 255, 100, 50))
+
     def on_mouse_button(self, down, x, y, lx, ly):
         k = self.paths[self.iter]
         if down:

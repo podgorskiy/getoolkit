@@ -92,3 +92,8 @@ class App:
 
     def point(self, x, y, color):
         self._ctx.point(x, y, color)
+
+    def box(self, box, color_stroke, color_fill):
+        minx, miny = box[0]
+        maxx, maxy = box[1]
+        self._ctx.box(minx, miny, maxx, maxy, color_stroke, color_fill)

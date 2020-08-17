@@ -607,7 +607,7 @@ void Context::Box(float minx, float miny, float maxx, float maxy, std::tuple<uin
 {
 	auto transform = m_camera.GetCanvasToWorld();
 
-	glm::aabb2 box(glm::vec2(minx, miny), glm::vec2(maxx, maxy));
+	glm::aabb2 box(transform * glm::vec3(minx, miny, 1), transform * glm::vec3(maxx, maxy, 1));
 
 	nvgBeginPath(vg);
 	nvgRect(vg, box);
