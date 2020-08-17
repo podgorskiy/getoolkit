@@ -211,6 +211,7 @@ public:
 	int GetHeight() const;
 
 	void Point(float x, float y, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color) const;
+	void Box(float minx, float miny, float maxx, float maxy, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color_stroke, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color_fill) const;
 
 	~Context();
 
@@ -602,6 +603,23 @@ void Context::Point(float x, float y, std::tuple<uint8_t, uint8_t, uint8_t, uint
 	nvgFill(vg);
 }
 
+void Context::Box(float minx, float miny, float maxx, float maxy, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color_stroke, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color_fill) const
+{
+	auto transform = m_camera.GetCanvasToWorld();
+
+	glm::aabb2 box(glm::vec2(minx, miny), glm::vec2(maxx, maxy));
+
+	nvgBeginPath(vg);
+	nvgRect(vg, box);
+	nvgFillColor(vg, nvgRGBA(std::get<0>(color_stroke), std::get<1>(color_fill), std::get<2>(color_fill), std::get<3>(color_fill)));
+	nvgFill(vg);
+
+	nvgBeginPath(vg);
+	nvgRect(vg, box);
+	nvgStrokeColor(vg, nvgRGBA(std::get<0>(color_stroke), std::get<1>(color_stroke), std::get<2>(color_stroke), std::get<3>(color_stroke)));
+	nvgStroke(vg);
+}
+
 
 PYBIND11_MODULE(_anntoolkit, m) {
 	m.doc() = "anntoolkit";
@@ -659,7 +677,8 @@ PYBIND11_MODULE(_anntoolkit, m) {
 		{
 			self.m_text->Label(str, x, y);
 		})
-		.def("point",  &Context::Point);
+		.def("point",  &Context::Point)
+		.def("box",  &Context::Box);
 
 	py::class_<Image, std::shared_ptr<Image> >(m, "Image")
 			.def(py::init<std::vector<ndarray_uint8>>(), "")
