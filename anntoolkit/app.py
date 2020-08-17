@@ -43,15 +43,16 @@ class App:
 
         self._ctx.set_keyboard_callback(keyboard)
         self.keys = {}
+        self.image = None
 
     def run(self):
         while not self._ctx.should_close():
             with self._ctx:
                 for k, v in self.keys.items():
                     self.keys[k] += 1
-                    if v > 5:
+                    if v > 50:
                         self.on_keyboard(k, True, 0)
-                        self.keys[k] = 1
+                        self.keys[k] = 45
 
                 self.on_update()
 
@@ -71,6 +72,7 @@ class App:
     def set_image(self, image, recenter=True):
         # m = anntoolkit.generate_mipmaps(image)
         # self._ctx.set(anntoolkit.Image(m))
+        self.image = image
         if recenter:
             self._ctx.set(anntoolkit.Image([image]))
         else:
@@ -78,6 +80,12 @@ class App:
 
     def recenter(self):
         self._ctx.recenter()
+
+    def set_roi(self, roi, scale=0):
+        scale = 1.0 / scale
+        x0, y0 = roi.left(), roi.top()
+        x1, y1 = roi.left() + roi.width(), roi.top() + roi.height()
+        self._ctx.set_roi(x0 * scale, y0 * scale, x1 * scale, y1 * scale)
 
     def text(self, s, x, y):
         self._ctx.text(s, x, y)
