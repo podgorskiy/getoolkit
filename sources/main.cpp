@@ -198,6 +198,7 @@ public:
 	void Resize(int width, int height);
 
 	void Recenter(RECENTER r);
+	void Recenter(float x0, float y0, float x1, float y1);
 
 	void NewFrame();
 
@@ -423,6 +424,36 @@ void Context::Recenter(RECENTER r)
 }
 
 
+void Context::Recenter(float x0, float y0, float x1, float y1)
+{
+	if (!m_image)
+	{
+		throw std::runtime_error("No image assigned");
+	}
+	auto p0 = glm::vec2(x0, y0);
+	auto p1 = glm::vec2(x1, y1);
+	auto size = p1 - p0;
+
+	glm::vec2 r = glm::vec2(m_width, m_height) / glm::vec2(size);
+
+	if (m_width * 1.0f / m_height > size.x * 1.0f / size.y)
+	{
+		m_camera.SetFOV(size.y * 1.2f / m_height);
+	}
+	else
+	{
+		m_camera.SetFOV(size.x * 1.2f / m_width);
+	}
+
+	auto clientArea = glm::vec2(m_width, m_height);
+
+	clientArea = glm::ivec2(glm::vec2(clientArea) * m_camera.GetFOV());
+
+	auto pos = glm::vec2(clientArea - size) / 2.0f;
+	m_camera.SetPos(pos - p0);
+}
+
+
 Context::~Context()
 {
 	glfwSetWindowSizeCallback(m_window, nullptr);
@@ -595,6 +626,10 @@ PYBIND11_MODULE(_anntoolkit, m) {
 		.def("recenter", [](Context& self)
 			{
 				self.Recenter(Context::FIT_DOCUMENT);
+			})
+		.def("set_roi", [](Context& self, float x0, float y0, float x1, float y1)
+			{
+				self.Recenter(x0, y0, x1, y1);
 			})
 		.def("__enter__", &Context::NewFrame)
 		.def("__exit__", [](Context& self, py::object, py::object, py::object)
