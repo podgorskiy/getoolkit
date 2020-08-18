@@ -89,7 +89,7 @@ class App(anntoolkit.App):
             boxes = [self.annotation[k][i:i + n] for i in range(0, len(self.annotation[k]), n)]
             for box in boxes:
                 if len(box) == 2:
-                    self.text_loc("I'm label", *box[0])
+                    self.text_loc("I'm label", *box[0], (0, 10, 0, 250), (150, 255, 150, 150))
                     self.box(box, (0, 255, 0, 250), (100, 255, 100, 50))
 
     def on_mouse_button(self, down, x, y, lx, ly):
