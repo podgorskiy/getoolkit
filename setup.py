@@ -194,7 +194,7 @@ definitions = {
 libs = {
     'darwin': [],
     'posix': ["rt", "m", "X11"],
-    'win32': ["gdi32", "opengl32", "Shell32"],
+    'win32': ["gdi32", "opengl32", "Shell32", "User32"],
 }
 
 extra_link = {
