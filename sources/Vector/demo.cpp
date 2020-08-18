@@ -951,15 +951,15 @@ static void flipHorizontal(unsigned char* image, int w, int h, int stride)
 
 void saveScreenShot(int w, int h, int premult, const char* name)
 {
-	unsigned char* image = (unsigned char*)malloc(w*h*4);
-	if (image == NULL)
-		return;
-	glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, image);
-	if (premult)
-		unpremultiplyAlpha(image, w, h, w*4);
-	else
-		setAlpha(image, w, h, w*4, 255);
-	flipHorizontal(image, w, h, w*4);
- 	//stbi_write_png(name, w, h, 4, image, w*4);
- 	free(image);
+//	unsigned char* image = (unsigned char*)malloc(w*h*4);
+//	if (image == NULL)
+//		return;
+//	glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, image);
+//	if (premult)
+//		unpremultiplyAlpha(image, w, h, w*4);
+//	else
+//		setAlpha(image, w, h, w*4, 255);
+//	flipHorizontal(image, w, h, w*4);
+// 	//stbi_write_png(name, w, h, 4, image, w*4);
+// 	free(image);
 }
