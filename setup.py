@@ -206,7 +206,7 @@ extra_link = {
 extra_compile_args = {
     'darwin': [],
     'posix': [],
-    'win32': ['/MT', '/fp:fast', '/GL', '/GR-'],
+    'win32': ['/MT', '/fp:fast', '/GL', '/GR-', '/EHsc'],
 }
 
 extra_compile_cpp_args = {
