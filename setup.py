@@ -193,7 +193,7 @@ definitions = {
 
 libs = {
     'darwin': [],
-    'posix': ["rt", "m", "X11"],
+    'posix': ["rt", "m", "X11", "opengl32"],
     'win32': ["gdi32", "opengl32", "Shell32", "User32"],
 }
 
