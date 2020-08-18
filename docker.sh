@@ -2,7 +2,7 @@
 # See build_maylinux_wheels.sh
 
 git clone https://github.com/podgorskiy/ImageAnnotationToolkit.git
-cd bimpy
+cd ImageAnnotationToolkit
 git submodule update --init
 cd glfw
 git pull origin master
