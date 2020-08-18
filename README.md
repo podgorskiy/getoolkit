@@ -7,7 +7,7 @@
 
 `pip install anntoolkit`
 
-#### 2. Hello wrold
+#### 2. Hello world
 Subclass from `anntoolkit.App`
 In init method load some test image.
 
