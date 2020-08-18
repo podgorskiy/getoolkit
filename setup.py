@@ -193,14 +193,14 @@ definitions = {
 
 libs = {
     'darwin': [],
-    'posix': ["rt", "m", "X11", "opengl32"],
+    'posix': ["rt", "m", "X11", "stdc++fs"],
     'win32': ["gdi32", "opengl32", "Shell32", "User32"],
 }
 
 extra_link = {
-    'darwin': ["-framework", "Cocoa","-framework", "IOKit","-framework", "Cocoa","-framework", "CoreFoundation","-framework", "CoreVideo"],
-    'posix': [],
-    'win32': [],
+    'darwin': ["-framework", "Cocoa", "-framework", "IOKit", "-framework", "Cocoa", "-framework", "CoreFoundation", "-framework", "CoreVideo"],
+    'posix' : ['-static-libstdc++', '-static-libgcc', '-flto', '-s'],
+    'win32' : [],
 }
 
 extra_compile_args = {
