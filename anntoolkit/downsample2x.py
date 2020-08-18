@@ -16,7 +16,7 @@
 import scipy.ndimage
 import numpy as np
 import warnings
-import texture_tool
+# import texture_tool
 
 
 # static inline double sinc_filter(double x)
