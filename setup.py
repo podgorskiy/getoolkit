@@ -215,7 +215,7 @@ extra_compile_cpp_args = {
     'win32': [],
 }
 
-sources = list(glob.glob('sources/**/*.c*', recursive=True))
+sources = list(glob.glob('sources/*.c*')) + list(glob.glob('sources/Vector/*.c*'))
 
 extension = Extension("_anntoolkit",
                              sources + glfw + glfw_platform[target_os] + ["libs/gl3w/src/gl3w.c"],
