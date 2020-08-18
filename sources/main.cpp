@@ -677,6 +677,37 @@ PYBIND11_MODULE(_anntoolkit, m) {
 		{
 			self.m_text->Label(str, x, y);
 		})
+		.def("text", [](Context& self, const char* str, int x, int y, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> bg_color)
+		{
+			self.m_text->SetColorf(SimpleText::TEXT_COLOR, std::get<0>(color), std::get<1>(color), std::get<2>(color), std::get<3>(color));
+			self.m_text->SetColorf(SimpleText::BACKGROUND_COLOR, std::get<0>(bg_color), std::get<1>(bg_color), std::get<2>(bg_color), std::get<3>(bg_color));
+			self.m_text->EnableBlending(true);
+			self.m_text->Label(str, x, y);
+			self.m_text->ResetFont();
+		})
+		.def("text_loc", [](Context& self, const char* str, float x, float y)
+		{
+			auto transform = self.m_camera.GetCanvasToWorld();
+
+			glm::vec2 pos_local = glm::vec2(x, y);
+			glm::vec2 pos = transform * glm::vec3(pos_local, 1);
+
+			self.m_text->Label(str, pos.x, pos.y);
+		})
+		.def("text_loc", [](Context& self, const char* str, float x, float y, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> bg_color)
+		{
+			auto transform = self.m_camera.GetCanvasToWorld();
+
+			glm::vec2 pos_local = glm::vec2(x, y);
+			glm::vec2 pos = transform * glm::vec3(pos_local, 1);
+
+			self.m_text->SetColorf(SimpleText::TEXT_COLOR, std::get<0>(color), std::get<1>(color), std::get<2>(color), std::get<3>(color));
+			self.m_text->SetColorf(SimpleText::BACKGROUND_COLOR, std::get<0>(bg_color), std::get<1>(bg_color), std::get<2>(bg_color), std::get<3>(bg_color));
+			self.m_text->EnableBlending(true);
+
+			self.m_text->Label(str, pos.x, pos.y);
+			self.m_text->ResetFont();
+		})
 		.def("point",  &Context::Point)
 		.def("box",  &Context::Box);
 

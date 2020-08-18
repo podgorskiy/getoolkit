@@ -87,8 +87,25 @@ class App:
         x1, y1 = roi.left() + roi.width(), roi.top() + roi.height()
         self._ctx.set_roi(x0 * scale, y0 * scale, x1 * scale, y1 * scale)
 
-    def text(self, s, x, y):
-        self._ctx.text(s, x, y)
+    def text(self, s, x, y, color=None, color_bg=None):
+        if color is None and color_bg is None:
+            self._ctx.text(s, x, y)
+        else:
+            if color is None:
+                raise ValueError
+            if color_bg is None:
+                color_bg = (0, 0, 0, 255)
+            self._ctx.text(s, x, y, color, color_bg)
+
+    def text_loc(self, s, lx, ly, color=None, color_bg=None):
+        if color is None and color_bg is None:
+            self._ctx.text_loc(s, lx, ly)
+        else:
+            if color is None:
+                raise ValueError
+            if color_bg is None:
+                color_bg = (0, 0, 0, 255)
+            self._ctx.text_loc(s, lx, ly, color, color_bg)
 
     def point(self, x, y, color):
         self._ctx.point(x, y, color)

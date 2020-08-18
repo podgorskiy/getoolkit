@@ -76,6 +76,7 @@ class App(anntoolkit.App):
     def on_update(self):
         k = self.paths[self.iter]
         self.text(k, 10, 10)
+        self.text('\033[32mGreen \033[1;31mBold red \033[22mNormal red \033[1;34;47m Bold blue on white \033[0mReset', 10, 60)
         if k in self.annotation:
             self.text("Points count %d" % len(self.annotation[k]), 10, 50)
             for i, p in enumerate(self.annotation[k]):
@@ -88,6 +89,7 @@ class App(anntoolkit.App):
             boxes = [self.annotation[k][i:i + n] for i in range(0, len(self.annotation[k]), n)]
             for box in boxes:
                 if len(box) == 2:
+                    self.text_loc("I'm label", *box[0])
                     self.box(box, (0, 255, 0, 250), (100, 255, 100, 50))
 
     def on_mouse_button(self, down, x, y, lx, ly):
