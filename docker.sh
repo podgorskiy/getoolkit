@@ -4,9 +4,9 @@
 git clone https://github.com/podgorskiy/ImageAnnotationToolkit.git
 cd ImageAnnotationToolkit
 git submodule update --init
-cd glfw
+cd libs/glfw
 git pull origin master
-cd ..
+cd ../..
 
 yum install -y libX11-devel libXcursor-devel libXrandr-devel libXinerama-devel mesa-libGL-devel libXi-devel
 
