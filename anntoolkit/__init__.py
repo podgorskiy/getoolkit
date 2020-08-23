@@ -21,14 +21,21 @@ def _handle_debugging():
     # if running debug session
     if os.path.exists("cmake-build-debug/"):
         print('Running Debugging session!')
-        # sys.path.insert(0, "cmake-build-debug/")
-        sys.path.insert(0, "cmake-build-release/")
+        sys.path.insert(0, "cmake-build-debug/")
+        # sys.path.insert(0, "cmake-build-release/")
 
 
 _handle_debugging()
 
+try:
+    from _anntoolkit import *
+except ImportError as e:
+    r = sys.exc_info()
+    print('Failed to import anntoolkit C++ extension')
+    if r:
+        print(str(r[1]))
+    raise e
 
-from _anntoolkit import *
 from anntoolkit.generate_mipmaps import generate_mipmaps
 from anntoolkit.app import App
 
