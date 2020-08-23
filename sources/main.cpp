@@ -211,7 +211,7 @@ public:
 
 	int GetHeight() const;
 
-	void Point(float x, float y, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color) const;
+	void Point(float x, float y, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color, float point_size) const;
 	void Box(float minx, float miny, float maxx, float maxy, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color_stroke, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color_fill) const;
 
 	~Context();
@@ -477,13 +477,6 @@ Context::~Context()
 
 void Context::Render()
 {
-	double x, y;
-	glfwGetCursorPos(m_window, &x, &y);
-	glm::vec2 cursorposition = glm::vec2(x, y);
-	m_camera.Move(cursorposition.x, cursorposition.y);
-
-	m_camera.UpdateViewProjection(m_width, m_height);
-
 	auto size = m_image->GetSize();
 
 	auto transform = m_camera.GetTransform();
@@ -541,6 +534,12 @@ void Context::Render()
 
 void Context::NewFrame()
 {
+	double x, y;
+	glfwGetCursorPos(m_window, &x, &y);
+	glm::vec2 cursorposition = glm::vec2(x, y);
+	m_camera.Move(cursorposition.x, cursorposition.y);
+	m_camera.UpdateViewProjection(m_width, m_height);
+
 	if (!m_image)
 	{
 		throw std::runtime_error("No image assigned");
@@ -590,7 +589,7 @@ int Context::GetHeight() const
 	return m_height;
 }
 
-void Context::Point(float x, float y, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color) const
+void Context::Point(float x, float y, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color, float point_size) const
 {
 	auto transform = m_camera.GetCanvasToWorld();
 
@@ -598,12 +597,10 @@ void Context::Point(float x, float y, std::tuple<uint8_t, uint8_t, uint8_t, uint
 	glm::vec2 point_pos = transform * glm::vec3(point_pos_local, 1);
 
 	nvgBeginPath(vg);
-	nvgCircle(vg, point_pos.x, point_pos.y, 5.0f);
+	nvgCircle(vg, point_pos.x, point_pos.y, point_size);
 	nvgFillColor(vg, nvgRGBA(std::get<0>(color), std::get<1>(color), std::get<2>(color), std::get<3>(color)));
 	nvgFill(vg);
 	nvgBeginPath(vg);
-
-	float point_size = 5.0;
 
 	nvgCircle(vg, point_pos.x, point_pos.y, point_size * 6);
 	nvgCircle(vg, point_pos.x, point_pos.y, point_size);
@@ -707,6 +704,21 @@ PYBIND11_MODULE(_anntoolkit, m) {
 
 			self.m_text->Label(str, pos.x, pos.y);
 		})
+		.def("loc_2_win", [](Context& self, float x, float y)
+		{
+			auto transform = self.m_camera.GetCanvasToWorld();
+			glm::vec2 pos_local = glm::vec2(x, y);
+			glm::vec2 pos = transform * glm::vec3(pos_local, 1);
+			return std::tuple<float, float>(pos.x, pos.y);
+		})
+		.def("win_2_loc", [](Context& self, float x, float y)
+		{
+			auto transform = self.m_camera.GetWorldToCanvas();
+			glm::vec2 pos_local = glm::vec2(x, y);
+			glm::vec2 pos = transform * glm::vec3(pos_local, 1);
+			return std::tuple<float, float>(pos.x, pos.y);
+		})
+		.def("get_scale", [] (Context& self) { return 1.0 / self.m_camera.GetFOV(); })
 		.def("text_loc", [](Context& self, const char* str, float x, float y, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> bg_color)
 		{
 			auto transform = self.m_camera.GetCanvasToWorld();
@@ -721,7 +733,7 @@ PYBIND11_MODULE(_anntoolkit, m) {
 			self.m_text->Label(str, pos.x, pos.y);
 			self.m_text->ResetFont();
 		})
-		.def("point",  &Context::Point)
+		.def("point",  &Context::Point, py::arg("x"), py::arg("y"), py::arg("color"), py::arg("radius") = 5)
 		.def("box",  &Context::Box);
 
 	py::class_<Image, std::shared_ptr<Image> >(m, "Image")

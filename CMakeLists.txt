@@ -99,6 +99,7 @@ set (CMAKE_CXX_FLAGS "-fPIC -g -fno-strict-aliasing -msse2 -msse3 -msse4 -funsaf
 include_directories(libs/glfw/include)
 include_directories(libs/pybind11/include)
 include_directories(libs/gl3w/include)
+include_directories(libs/imgui)
 include_directories(libs/glm)
 include_directories(libs/SimpleText/include)
 include_directories(${CMAKE_BINARY_DIR}/libs/gl3w/include)
@@ -119,6 +120,13 @@ link_directories("${PYTHON_LIBRARY_DIR}")
 add_subdirectory (libs/glfw)
 add_subdirectory (libs/gl3w)
 
+#####################################################################
+# imgui
+#####################################################################
+set(IMGUI_DIR libs/imgui)
+file(GLOB IMGUI_SOURCES ${IMGUI_DIR}/*.cpp ${IMGUI_DIR}/*.h )
+add_library(imgui ${IMGUI_SOURCES})
+
 
 #####################################################################
 # Main sources
@@ -136,7 +144,7 @@ add_library(anntoolkit SHARED ${SOURCES})
 #####################################################################
 # Linkage
 #####################################################################
-set(LIBRARIES rt m  stdc++fs gomp  ${PYTHON_LIBRARY} glfw gl3w   ${OPENGL_LIBRARIES} )
+set(LIBRARIES rt m  stdc++fs gomp  ${PYTHON_LIBRARY} glfw gl3w imgui ${OPENGL_LIBRARIES} )
 target_link_libraries(anntoolkit ${LIBRARIES})
 SET_TARGET_PROPERTIES(anntoolkit PROPERTIES PREFIX "_")
 #####################################################################

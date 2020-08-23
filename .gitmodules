@@ -19,3 +19,6 @@
 [submodule "libs/SimpleText"]
 	path = libs/SimpleText
 	url = https://github.com/podgorskiy/SimpleText.git
+[submodule "libs/imgui"]
+	path = libs/imgui
+	url = https://github.com/ocornut/imgui.git

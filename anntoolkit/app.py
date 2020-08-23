@@ -107,10 +107,28 @@ class App:
                 color_bg = (0, 0, 0, 255)
             self._ctx.text_loc(s, lx, ly, color, color_bg)
 
-    def point(self, x, y, color):
-        self._ctx.point(x, y, color)
+    def point(self, x, y, color, radius=5.0):
+        self._ctx.point(x, y, color, radius)
+
+    def win_2_loc(self, x, y):
+        return self._ctx.win_2_loc(x, y)
+
+    def loc_2_win(self, x, y):
+        return self._ctx.loc_2_win(x, y)
+
+    @property
+    def scale(self):
+        return self._ctx.get_scale()
 
     def box(self, box, color_stroke, color_fill):
         minx, miny = box[0]
         maxx, maxy = box[1]
         self._ctx.box(minx, miny, maxx, maxy, color_stroke, color_fill)
+
+    @property
+    def width(self):
+        return self._ctx.width()
+
+    @property
+    def height(self):
+        return self._ctx.height()
