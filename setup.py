@@ -178,12 +178,12 @@ glfw_platform = {
     ]
 }
 
-# imgui = [
-#      "libs/imgui/imgui.cpp"
-#     ,"libs/imgui/imgui_demo.cpp"
-#     ,"libs/imgui/imgui_draw.cpp"
-#     ,"libs/imgui/imgui_widgets.cpp"
-# ]
+imgui = [
+     "libs/imgui/imgui.cpp"
+    ,"libs/imgui/imgui_demo.cpp"
+    ,"libs/imgui/imgui_draw.cpp"
+    ,"libs/imgui/imgui_widgets.cpp"
+]
 
 definitions = {
     'darwin': [("_GLFW_COCOA", 1)],
@@ -218,9 +218,18 @@ extra_compile_cpp_args = {
 sources = list(glob.glob('sources/*.c*')) + list(glob.glob('sources/Vector/*.c*'))
 
 extension = Extension("_anntoolkit",
-                             sources + glfw + glfw_platform[target_os] + ["libs/gl3w/src/gl3w.c"],
+                             sources + imgui + glfw + glfw_platform[target_os] + ["libs/gl3w/src/gl3w.c"],
                              define_macros = definitions[target_os],
-                             include_dirs=["sources","libs/glfw/include","libs/doctest/doctest","libs/SimpleText/include","libs/spdlog/include","libs/glm", "libs/pybind11/include", "libs/gl3w/include"],
+                             include_dirs=[
+                                 "sources",
+                                 "libs/glfw/include",
+                                 "libs/doctest/doctest",
+                                 "libs/SimpleText/include",
+                                 "libs/spdlog/include",
+                                 "libs/glm",
+                                 "libs/pybind11/include",
+                                 "libs/imgui",
+                                 "libs/gl3w/include"],
                              extra_compile_args=extra_compile_args[target_os],
                              extra_link_args=extra_link[target_os],
                              libraries = libs[target_os])
@@ -236,7 +245,7 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
 
-    url='https://github.com/podgorskiy/ImageAnnotationToolkit',
+    url='https://github.com/podgorskiy/anntoolkit',
 
     author='Stanislav Pidhorskyi',
     author_email='stpidhorskyi@mix.wvu.edu',
