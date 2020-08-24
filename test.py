@@ -79,6 +79,10 @@ class App(anntoolkit.App):
         self.text('\033[32mGreen \033[1;31mBold red \033[22mNormal red \033[1;34;47m Bold blue on white \033[0mReset', 10, 70)
         self.text('Window size: %dx%d' % (self.width, self.height), 10, 100)
         self.text('Scale %f' % self.scale, 10, 130)
+        self.text('Some text with right alignment', 400, 170, alignment=anntoolkit.Alignment.Right)
+        self.text('Some other text with right alignment', 400, 200, alignment=anntoolkit.Alignment.Right)
+        self.text('Some text with center alignment', 400, 230, alignment=anntoolkit.Alignment.Center)
+        self.text('Some other  text with center alignment', 400, 260, alignment=anntoolkit.Alignment.Center)
         if k in self.annotation:
             self.text("Points count %d" % len(self.annotation[k]), 10, 50)
             for i, p in enumerate(self.annotation[k]):

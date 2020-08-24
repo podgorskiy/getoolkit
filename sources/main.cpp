@@ -30,6 +30,20 @@ namespace py = pybind11;
 
 typedef py::array_t<uint8_t, py::array::c_style> ndarray_uint8;
 
+enum SpecialKeys
+{
+	KeyEscape = 256,
+	KeyEnter = 257,
+	KeyTab = 258,
+	KeyBackspace = 259,
+	KeyInsert = 260,
+	KeyDelete = 261,
+	KeyRight = 262,
+	KeyLeft = 263,
+	KeyDown = 264,
+	KeyUp = 265,
+};
+
 
 class Image
 {
@@ -683,26 +697,26 @@ PYBIND11_MODULE(_anntoolkit, m) {
 		.def("set_keyboard_callback", [](Context& self, py::function f){
 			self.keyboard_callback = f;
 		})
-		.def("text", [](Context& self, const char* str, int x, int y)
+		.def("text", [](Context& self, const char* str, int x, int y, SimpleText::Alignment align)
 		{
-			self.m_text->Label(str, x, y);
+			self.m_text->Label(str, x, y, align);
 		})
-		.def("text", [](Context& self, const char* str, int x, int y, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> bg_color)
+		.def("text", [](Context& self, const char* str, int x, int y, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> bg_color, SimpleText::Alignment align)
 		{
 			self.m_text->SetColorf(SimpleText::TEXT_COLOR, std::get<0>(color) / 255.f, std::get<1>(color) / 255.f, std::get<2>(color) / 255.f, std::get<3>(color) / 255.f);
 			self.m_text->SetColorf(SimpleText::BACKGROUND_COLOR, std::get<0>(bg_color) / 255.f, std::get<1>(bg_color) / 255.f, std::get<2>(bg_color) / 255.f, std::get<3>(bg_color) / 255.f);
 			self.m_text->EnableBlending(true);
-			self.m_text->Label(str, x, y);
+			self.m_text->Label(str, x, y, align);
 			self.m_text->ResetFont();
 		})
-		.def("text_loc", [](Context& self, const char* str, float x, float y)
+		.def("text_loc", [](Context& self, const char* str, float x, float y, SimpleText::Alignment align)
 		{
 			auto transform = self.m_camera.GetCanvasToWorld();
 
 			glm::vec2 pos_local = glm::vec2(x, y);
 			glm::vec2 pos = transform * glm::vec3(pos_local, 1);
 
-			self.m_text->Label(str, pos.x, pos.y);
+			self.m_text->Label(str, pos.x, pos.y, align);
 		})
 		.def("loc_2_win", [](Context& self, float x, float y)
 		{
@@ -719,7 +733,7 @@ PYBIND11_MODULE(_anntoolkit, m) {
 			return std::tuple<float, float>(pos.x, pos.y);
 		})
 		.def("get_scale", [] (Context& self) { return 1.0 / self.m_camera.GetFOV(); })
-		.def("text_loc", [](Context& self, const char* str, float x, float y, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> bg_color)
+		.def("text_loc", [](Context& self, const char* str, float x, float y, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> bg_color, SimpleText::Alignment align)
 		{
 			auto transform = self.m_camera.GetCanvasToWorld();
 
@@ -730,11 +744,30 @@ PYBIND11_MODULE(_anntoolkit, m) {
 			self.m_text->SetColorf(SimpleText::BACKGROUND_COLOR, std::get<0>(bg_color) / 255.f, std::get<1>(bg_color) / 255.f, std::get<2>(bg_color) / 255.f, std::get<3>(bg_color) / 255.f);
 			self.m_text->EnableBlending(true);
 
-			self.m_text->Label(str, pos.x, pos.y);
+			self.m_text->Label(str, pos.x, pos.y, align);
 			self.m_text->ResetFont();
 		})
 		.def("point",  &Context::Point, py::arg("x"), py::arg("y"), py::arg("color"), py::arg("radius") = 5)
 		.def("box",  &Context::Box);
+
+		py::enum_<SpecialKeys>(m, "SpecialKeys")
+			.value("KeyEscape", KeyEscape)
+			.value("KeyEnter", KeyEnter)
+			.value("KeyTab", KeyTab)
+			.value("KeyBackspace", KeyBackspace)
+			.value("KeyInsert", KeyInsert)
+			.value("KeyDelete", KeyDelete)
+			.value("KeyRight", KeyRight)
+			.value("KeyLeft", KeyLeft)
+			.value("KeyDown", KeyDown)
+			.value("KeyUp", KeyUp)
+			.export_values();
+
+		py::enum_<SimpleText::Alignment>(m, "Alignment")
+			.value("Left", SimpleText::LEFT)
+			.value("Center", SimpleText::CENTER)
+			.value("Right", SimpleText::RIGHT)
+			.export_values();
 
 	py::class_<Image, std::shared_ptr<Image> >(m, "Image")
 			.def(py::init<std::vector<ndarray_uint8>>(), "")
