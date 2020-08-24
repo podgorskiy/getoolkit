@@ -20,7 +20,7 @@ sys._argv = sys.argv[:]
 sys.argv=[sys.argv[0], '--root', 'libs/gl3w/']
 
 try:
-    from gl3w import gl3w_gen
+    from libs.gl3w import gl3w_gen
 except:
     sys.path.insert(0, './libs/gl3w')
     import gl3w_gen
