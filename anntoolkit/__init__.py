@@ -39,19 +39,6 @@ except ImportError as e:
 from anntoolkit.generate_mipmaps import generate_mipmaps
 from anntoolkit.app import App
 
-
-KeyEscape = 256
-KeyEnter = 257
-KeyTab = 258
-KeyBackspace = 259
-KeyInsert = 260
-KeyDelete = 261
-KeyRight = 262
-KeyLeft = 263
-KeyDown = 264
-KeyUp = 265
-
-
 # A hack to force sphinx to do the right thing
 if 'sphinx' in sys.modules:
     print('Sphinx detected!!!')

@@ -224,27 +224,29 @@ class App:
         x1, y1 = roi.left() + roi.width(), roi.top() + roi.height()
         self._ctx.set_roi(x0 * scale, y0 * scale, x1 * scale, y1 * scale)
 
-    def text(self, s, x, y, color=None, color_bg=None):
+    def text(self, s, x, y, color=None, color_bg=None, alignment=anntoolkit.Alignment.Left):
         """Draw text in window space
 
         Arguments:
             s (str): Text
             x (int): x coordinate of the text in window space
             y (int): y coordinate of the text in window space
-            color (tuple[int, int, int, int]): RGBA color of text
-            color_bg (tuple[int, int, int, int]): RGBA color of background
+            color (tuple[int, int, int, int]): RGBA color of text. Default None, results in white
+            color_bg (tuple[int, int, int, int]): RGBA color of background. Default None, results in black
+            alignment (anntoolkit.Alignment): Alignment. Can be one of: `anntoolkit.Alignment.Left`,
+                `anntoolkit.Alignment.Center`, `anntoolkit.Alignment.Right`. Default `anntoolkit.Alignment.Left`.
         """
 
         if color is None and color_bg is None:
-            self._ctx.text(s, x, y)
+            self._ctx.text(s, x, y, alignment)
         else:
             if color is None:
                 raise ValueError
             if color_bg is None:
                 color_bg = (0, 0, 0, 255)
-            self._ctx.text(s, x, y, color, color_bg)
+            self._ctx.text(s, x, y, color, color_bg, alignment)
 
-    def text_loc(self, s, lx, ly, color=None, color_bg=None):
+    def text_loc(self, s, lx, ly, color=None, color_bg=None, alignment=anntoolkit.Alignment.Left):
         """Draw text in image space
 
         Arguments:
@@ -253,16 +255,18 @@ class App:
             y (int): y coordinate of the text in image space
             color (tuple[int, int, int, int]): RGBA color of text
             color_bg (tuple[int, int, int, int]): RGBA color of background
+            alignment (anntoolkit.Alignment): Alignment. Can be one of: `anntoolkit.Alignment.Left`,
+                `anntoolkit.Alignment.Center`, `anntoolkit.Alignment.Right`. Default `anntoolkit.Alignment.Left`.
         """
 
         if color is None and color_bg is None:
-            self._ctx.text_loc(s, lx, ly)
+            self._ctx.text_loc(s, lx, ly, alignment)
         else:
             if color is None:
                 raise ValueError
             if color_bg is None:
                 color_bg = (0, 0, 0, 255)
-            self._ctx.text_loc(s, lx, ly, color, color_bg)
+            self._ctx.text_loc(s, lx, ly, color, color_bg, alignment)
 
     def point(self, x, y, color, radius=5.0):
         """Draw point in image space
