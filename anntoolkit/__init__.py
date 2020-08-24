@@ -39,16 +39,6 @@ except ImportError as e:
 from anntoolkit.generate_mipmaps import generate_mipmaps
 from anntoolkit.app import App
 
-# A hack to force sphinx to do the right thing
-if 'sphinx' in sys.modules:
-    print('Sphinx detected!!!')
-    del os
-    del sys
-    __all__ = dir()
-else:
-    del os
-    del sys
-
 
 KeyEscape = 256
 KeyEnter = 257
@@ -60,3 +50,14 @@ KeyRight = 262
 KeyLeft = 263
 KeyDown = 264
 KeyUp = 265
+
+
+# A hack to force sphinx to do the right thing
+if 'sphinx' in sys.modules:
+    print('Sphinx detected!!!')
+    del os
+    del sys
+    __all__ = dir()
+else:
+    del os
+    del sys

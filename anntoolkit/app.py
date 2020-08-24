@@ -166,10 +166,42 @@ class App:
             down (bool): True if key is pressed. False if key is released.
             mods (int): Indicates additional modifing keys, such as Ctrl, Shift, Alt
 
+        Example:
+            >>> def on_keyboard(self, key, down, mods):
+            >>>     if down:
+            >>>         if key == anntoolkit.KeyLeft:
+            >>>             ...
+            >>>         if key == anntoolkit.KeyRight:
+            >>>             ...
+            >>>         if key == anntoolkit.KeyUp:
+            >>>             ...
+            >>>         if key == anntoolkit.KeyDown:
+            >>>             ...
+            >>>         if key == anntoolkit.KeyDelete:
+            >>>             ...
+            >>>         if key == anntoolkit.KeyBackspace:
+            >>>             ...
+            >>>         if key == 'R':
+            >>>             ...
+            >>>         if key == 'A':
+            >>>             ...
+            >>>         if key == 'Q':
+            >>>             ...
         """
         pass
 
     def set_image(self, image, recenter=True):
+        """ Sets the image to annotate
+
+        .. note::
+            Must be numpy ndarray of type numpy.uint8
+
+        Should have 2 dims (grayscale) or 3 dims (colored) with the last dim of size 3 for RGB case or 4 for RGBA case.
+
+        Example:
+            >>> im = imageio.imread('test_image.jpg')
+            >>> app.set_image(im)
+        """
         # m = anntoolkit.generate_mipmaps(image)
         # self._ctx.set(anntoolkit.Image(m))
         self.image = image
@@ -179,15 +211,30 @@ class App:
             self._ctx.set_without_recenter(anntoolkit.Image([image]))
 
     def recenter(self):
+        """ Resets zoom and recenters the image to fit in the window
+        """
+
         self._ctx.recenter()
 
     def set_roi(self, roi, scale=0):
+        """ Zooms and moves the image to view the requested roi
+        """
         scale = 1.0 / scale
         x0, y0 = roi.left(), roi.top()
         x1, y1 = roi.left() + roi.width(), roi.top() + roi.height()
         self._ctx.set_roi(x0 * scale, y0 * scale, x1 * scale, y1 * scale)
 
     def text(self, s, x, y, color=None, color_bg=None):
+        """Draw text in window space
+
+        Arguments:
+            s (str): Text
+            x (int): x coordinate of the text in window space
+            y (int): y coordinate of the text in window space
+            color (tuple[int, int, int, int]): RGBA color of text
+            color_bg (tuple[int, int, int, int]): RGBA color of background
+        """
+
         if color is None and color_bg is None:
             self._ctx.text(s, x, y)
         else:
@@ -198,6 +245,16 @@ class App:
             self._ctx.text(s, x, y, color, color_bg)
 
     def text_loc(self, s, lx, ly, color=None, color_bg=None):
+        """Draw text in image space
+
+        Arguments:
+            s (str): Text
+            x (int): x coordinate of the text in image space
+            y (int): y coordinate of the text in image space
+            color (tuple[int, int, int, int]): RGBA color of text
+            color_bg (tuple[int, int, int, int]): RGBA color of background
+        """
+
         if color is None and color_bg is None:
             self._ctx.text_loc(s, lx, ly)
         else:
@@ -208,27 +265,76 @@ class App:
             self._ctx.text_loc(s, lx, ly, color, color_bg)
 
     def point(self, x, y, color, radius=5.0):
+        """Draw point in image space
+
+        Arguments:
+            x (int): x coordinate of the text in image space
+            y (int): y coordinate of the text in image space
+            color (tuple[int, int, int, int]): RGBA color of text
+            radius (float):radius of the point. Default 5.0.
+        """
         self._ctx.point(x, y, color, radius)
 
     def win_2_loc(self, x, y):
+        """Convert window space to image space
+
+        Arguments:
+            x (float): x coordinate of the text in window space
+            y (float): y coordinate of the text in window space
+
+        Returns:
+            tuple[float, float] - x, y coordinates in image space
+        """
         return self._ctx.win_2_loc(x, y)
 
     def loc_2_win(self, x, y):
+        """Convert image space to window space
+
+        Arguments:
+            x (float): x coordinate of the text in image space
+            y (float): y coordinate of the text in image space
+
+        Returns:
+            tuple[float, float] - x, y coordinates in window space
+        """
         return self._ctx.loc_2_win(x, y)
 
     @property
     def scale(self):
+        """Returns `scale` - change of length when transform from image space to window space
+
+        If `scale` is 2, that means any line segment in window space will be twice longer than corresponding in image space
+
+        Returns:
+            float - scale
+        """
         return self._ctx.get_scale()
 
     def box(self, box, color_stroke, color_fill):
+        """Draw a box
+
+        Arguments:
+            box (list[tuple[float, float], tuple[float, float]]): coordinates of the box. List should be size of two
+                contain x,y coordinats of two opposite corners of the box
+            color_stroke (tuple[int, int, int, int]): color of the stroke
+            color_fill (tuple[int, int, int, int]): color of the fill
+
+        Returns:
+            tuple[float, float] - x, y coordinates in window space
+        """
         minx, miny = box[0]
         maxx, maxy = box[1]
         self._ctx.box(minx, miny, maxx, maxy, color_stroke, color_fill)
 
     @property
     def width(self):
+        """Width of the window
+        """
         return self._ctx.width()
 
     @property
     def height(self):
+        """Height of the window
+
+        """
         return self._ctx.height()

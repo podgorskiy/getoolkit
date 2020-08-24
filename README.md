@@ -3,6 +3,8 @@
 
 ### Getting started
 
+Documentation - [http://anntoolkit.rtfd.io/](http://anntoolkit.rtfd.io/)
+
 #### 1. Install
 
 `pip install anntoolkit`
@@ -12,7 +14,7 @@ Subclass from `anntoolkit.App`
 In init method load some test image.
 
 ``` python
-import anntoolkit
+import anntoolkithttp://anntoolkit.rtfd.io/
 
 class App(anntoolkit.App):
     def __init__(self):
