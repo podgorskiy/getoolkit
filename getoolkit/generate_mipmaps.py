@@ -15,7 +15,7 @@
 
 import numpy as np
 import warnings
-from anntoolkit.downsample2x import downsample2x
+from getoolkit.downsample2x import downsample2x
 
 
 def is_power_of_two(n):

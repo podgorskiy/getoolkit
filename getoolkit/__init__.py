@@ -28,7 +28,7 @@ def _handle_debugging():
 _handle_debugging()
 
 try:
-    from _anntoolkit import *
+    from _getoolkit import *
 except ImportError as e:
     r = sys.exc_info()
     print('Failed to import anntoolkit C++ extension')
@@ -48,8 +48,8 @@ KeyDown = SpecialKeys.KeyDown
 KeyUp = SpecialKeys.KeyUp
 
 
-from anntoolkit.generate_mipmaps import generate_mipmaps
-from anntoolkit.app import App
+from getoolkit.generate_mipmaps import generate_mipmaps
+from getoolkit.app import App
 
 # A hack to force sphinx to do the right thing
 if 'sphinx' in sys.modules:

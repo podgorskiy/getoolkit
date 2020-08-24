@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.6)
 
-project(ImageAnnotationToolkit)
+project(GameEditorTookit)
 
 option (GLFW_BUILD_EXAMPLES OFF)
 option (GLFW_BUILD_TESTS OFF)
@@ -87,7 +87,7 @@ add_definitions(-DHAVE_SSE42)
 add_definitions(-D_HAS_EXCEPTIONS=0)
 add_definitions(-DCPPHEAPWATCH=1)
 
-set (CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 set (CMAKE_C_FLAGS "-std=c99 ${CMAKE_C_FLAGS}")
 set (CMAKE_C_FLAGS "-fPIC -g  ${CMAKE_C_FLAGS}")
@@ -119,6 +119,11 @@ link_directories("${PYTHON_LIBRARY_DIR}")
 ##############################################################
 add_subdirectory (libs/glfw)
 add_subdirectory (libs/gl3w)
+add_subdirectory (libs/fsal)
+add_subdirectory (libs/scriberlib)
+add_subdirectory (libs/yaml-cpp)
+
+target_include_directories(fsal PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/libs/lz4/lib)
 
 #####################################################################
 # imgui
@@ -126,6 +131,32 @@ add_subdirectory (libs/gl3w)
 set(IMGUI_DIR libs/imgui)
 file(GLOB IMGUI_SOURCES ${IMGUI_DIR}/*.cpp ${IMGUI_DIR}/*.h )
 add_library(imgui ${IMGUI_SOURCES})
+#####################################################################
+
+
+#####################################################################
+# lz4
+#####################################################################
+set(LZ4_DIR libs/lz4/lib/)
+set(SOURCES_LZ4 ${LZ4_DIR}lz4.c ${LZ4_DIR}lz4hc.c ${LZ4_DIR}lz4.h ${LZ4_DIR}lz4hc.h ${LZ4_DIR}xxhash.c ${LZ4_DIR}xxhash.h)
+add_library(lz4 ${SOURCES_LZ4})
+#####################################################################
+
+
+#####################################################################
+# zlib
+#####################################################################
+file(GLOB ZLIB_SOURCES libs/zlib/*.c libs/zlib/*.h)
+add_library(zlib_static STATIC ${ZLIB_SOURCES})
+#####################################################################
+
+
+#####################################################################
+# pugixml
+#####################################################################
+file(GLOB PUGIXML_SOURCES libs/pugixml/src/*.cpp libs/pugixml/src/*.hpp)
+add_library(pugixml ${PUGIXML_SOURCES})
+#####################################################################
 
 
 #####################################################################
@@ -138,13 +169,36 @@ list(REMOVE_ITEM SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/sources/libjpeg-turbo_CU.cp
 #####################################################################
 # Targets
 #####################################################################
-add_library(anntoolkit SHARED ${SOURCES})
+add_library(getoolkit SHARED ${SOURCES})
 #####################################################################
 
 #####################################################################
 # Linkage
 #####################################################################
-set(LIBRARIES rt m  stdc++fs gomp  ${PYTHON_LIBRARY} glfw gl3w imgui ${OPENGL_LIBRARIES} )
-target_link_libraries(anntoolkit ${LIBRARIES})
-SET_TARGET_PROPERTIES(anntoolkit PROPERTIES PREFIX "_")
+set(LIBRARIES rt m  stdc++fs gomp  ${PYTHON_LIBRARY} glfw gl3w imgui  pthread dl  pugixml fsal lz4 zlib_static scribe yaml-cpp ${OPENGL_LIBRARIES} )
+target_link_libraries(getoolkit PRIVATE ${LIBRARIES})
+SET_TARGET_PROPERTIES(getoolkit PROPERTIES PREFIX "_")
 #####################################################################
+
+if(MSVC)
+else()
+	target_link_libraries(getoolkit PRIVATE stdc++fs)
+	target_compile_options(getoolkit PRIVATE -lstdc++fs -Wno-switch)
+	target_link_options(getoolkit PRIVATE -static-libstdc++)
+endif()
+
+
+
+##############################################################
+# Includes
+##############################################################
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/stb)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/fsal/sources)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/pugixml/src)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/lz4/lib)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/zlib)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/sources)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/doctest/doctest)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/scriberlib/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/scriberlib/3rdparty/utf8)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/yaml-cpp/include)

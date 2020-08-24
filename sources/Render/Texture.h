@@ -3,7 +3,7 @@
 #include <string>
 #include <glm/glm.hpp>
 #include "Types.h"
-#include "IReader.h"
+#include "TextureReaders/IReader.h"
 
 
 namespace Render
@@ -33,6 +33,8 @@ namespace Render
 		void Bind(int slot);
 
 		void UnBind();
+
+		glm::ivec2 GetSize() { return header.size; }
 
 		struct TextureHeader
 		{

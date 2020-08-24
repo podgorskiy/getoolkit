@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-import anntoolkit
+import getoolkit
 
 
 class App:
@@ -35,7 +35,7 @@ class App:
         >>> import anntoolkit
         >>> import imageio
         >>>
-        >>> class App(anntoolkit.App):
+        >>> class App(getoolkit.App):
         >>>     def __init__(self):
         >>>         # Calling constructor of base class
         >>>         super(App, self).__init__(title='Test')
@@ -50,7 +50,7 @@ class App:
     """
 
     def __init__(self, width=600, height=600, title="Hello"):
-        self._ctx = anntoolkit.Context()
+        self._ctx = getoolkit.Context()
         self._ctx.init(width, height, title)
 
         def mouse_button(down, x, y, lx, ly):
@@ -169,17 +169,17 @@ class App:
         Example:
             >>> def on_keyboard(self, key, down, mods):
             >>>     if down:
-            >>>         if key == anntoolkit.KeyLeft:
+            >>>         if key == getoolkit.KeyLeft:
             >>>             ...
-            >>>         if key == anntoolkit.KeyRight:
+            >>>         if key == getoolkit.KeyRight:
             >>>             ...
-            >>>         if key == anntoolkit.KeyUp:
+            >>>         if key == getoolkit.KeyUp:
             >>>             ...
-            >>>         if key == anntoolkit.KeyDown:
+            >>>         if key == getoolkit.KeyDown:
             >>>             ...
-            >>>         if key == anntoolkit.KeyDelete:
+            >>>         if key == getoolkit.KeyDelete:
             >>>             ...
-            >>>         if key == anntoolkit.KeyBackspace:
+            >>>         if key == getoolkit.KeyBackspace:
             >>>             ...
             >>>         if key == 'R':
             >>>             ...
@@ -206,9 +206,9 @@ class App:
         # self._ctx.set(anntoolkit.Image(m))
         self.image = image
         if recenter:
-            self._ctx.set(anntoolkit.Image([image]))
+            self._ctx.set(getoolkit.Image([image]))
         else:
-            self._ctx.set_without_recenter(anntoolkit.Image([image]))
+            self._ctx.set_without_recenter(getoolkit.Image([image]))
 
     def recenter(self):
         """ Resets zoom and recenters the image to fit in the window
@@ -224,7 +224,7 @@ class App:
         x1, y1 = roi.left() + roi.width(), roi.top() + roi.height()
         self._ctx.set_roi(x0 * scale, y0 * scale, x1 * scale, y1 * scale)
 
-    def text(self, s, x, y, color=None, color_bg=None, alignment=anntoolkit.Alignment.Left):
+    def text(self, s, x, y, color=None, color_bg=None, alignment=getoolkit.Alignment.Left):
         """Draw text in window space
 
         Arguments:
@@ -246,7 +246,7 @@ class App:
                 color_bg = (0, 0, 0, 255)
             self._ctx.text(s, x, y, color, color_bg, alignment)
 
-    def text_loc(self, s, lx, ly, color=None, color_bg=None, alignment=anntoolkit.Alignment.Left):
+    def text_loc(self, s, lx, ly, color=None, color_bg=None, alignment=getoolkit.Alignment.Left):
         """Draw text in image space
 
         Arguments:

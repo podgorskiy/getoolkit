@@ -1,15 +1,16 @@
-import anntoolkit
+import getoolkit
 import imageio
 import os
 import pickle
 import numpy as np
 import random
+import bimpy
 
 LIBRARY_PATH = 'images'
 SAVE_PATH = 'save.pth'
 
 
-class App(anntoolkit.App):
+class App(getoolkit.App):
     def __init__(self):
         super(App, self).__init__(title='Test')
 
@@ -79,10 +80,10 @@ class App(anntoolkit.App):
         self.text('\033[32mGreen \033[1;31mBold red \033[22mNormal red \033[1;34;47m Bold blue on white \033[0mReset', 10, 70)
         self.text('Window size: %dx%d' % (self.width, self.height), 10, 100)
         self.text('Scale %f' % self.scale, 10, 130)
-        self.text('Some text with right alignment', 400, 170, alignment=anntoolkit.Alignment.Right)
-        self.text('Some other text with right alignment', 400, 200, alignment=anntoolkit.Alignment.Right)
-        self.text('Some text with center alignment', 400, 230, alignment=anntoolkit.Alignment.Center)
-        self.text('Some other  text with center alignment', 400, 260, alignment=anntoolkit.Alignment.Center)
+        self.text('Some text with right alignment', 400, 170, alignment=getoolkit.Alignment.Right)
+        self.text('Some other text with right alignment', 400, 200, alignment=getoolkit.Alignment.Right)
+        self.text('Some text with center alignment', 400, 230, alignment=getoolkit.Alignment.Center)
+        self.text('Some other  text with center alignment', 400, 260, alignment=getoolkit.Alignment.Center)
         if k in self.annotation:
             self.text("Points count %d" % len(self.annotation[k]), 10, 50)
             for i, p in enumerate(self.annotation[k]):
@@ -138,21 +139,21 @@ class App(anntoolkit.App):
 
     def on_keyboard(self, key, down, mods):
         if down:
-            if key == anntoolkit.SpecialKeys.KeyLeft:
+            if key == getoolkit.SpecialKeys.KeyLeft:
                 self.load_prev()
-            if key == anntoolkit.SpecialKeys.KeyRight:
+            if key == getoolkit.SpecialKeys.KeyRight:
                 self.load_next()
-            if key == anntoolkit.SpecialKeys.KeyUp:
+            if key == getoolkit.SpecialKeys.KeyUp:
                 self.load_next_not_annotated()
-            if key == anntoolkit.SpecialKeys.KeyDown:
+            if key == getoolkit.SpecialKeys.KeyDown:
                 self.load_prev_not_annotated()
-            if key == anntoolkit.SpecialKeys.KeyDelete:
+            if key == getoolkit.SpecialKeys.KeyDelete:
                 k = self.paths[self.iter]
                 if k in self.annotation:
                     del self.annotation[k]
                 with open(SAVE_PATH, 'wb') as f:
                     pickle.dump(self.annotation, f)
-            if key == anntoolkit.SpecialKeys.KeyBackspace:
+            if key == getoolkit.SpecialKeys.KeyBackspace:
                 k = self.paths[self.iter]
                 if k in self.annotation and len(self.annotation[k]) > 0:
                     self.annotation[k] = self.annotation[k][:-1]

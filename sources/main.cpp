@@ -3,12 +3,12 @@
  * License: https://raw.githubusercontent.com/podgorskiy/bimpy/master/LICENSE.txt
  */
 #include "Camera2D.h"
-#include "DebugRenderer.h"
+#include "Render/DebugRenderer.h"
 #include "simpletext.h"
-#include "GLDebugMessage.h"
-#include "Shader.h"
-#include "VertexSpec.h"
-#include "VertexBuffer.h"
+#include "Render/GLDebugMessage.h"
+#include "Render/Shader.h"
+#include "Render/VertexSpec.h"
+#include "Render/VertexBuffer.h"
 #include <glm/ext/matrix_transform.hpp>
 #include "Vector/nanovg.h"
 #include "Vector/nanovg_backend.h"
@@ -44,210 +44,221 @@ enum SpecialKeys
 	KeyUp = 265,
 };
 
+typedef std::shared_ptr<SimpleText> SimpleTextPtr;
 
-class Image
+namespace pth
 {
-public:
-	Image& operator=(const Image&) = delete;
-	Image(const Image&) = delete;
-
-	Image()
+	class Image
 	{
-		glGenTextures(1, &m_textureHandle);
-		m_width = -1;
-		m_height = -1;
-	}
+	public:
+		Image& operator=(const Image&) = delete;
 
-	Image(std::vector<ndarray_uint8> ims)
-	{
-		glGenTextures(1, &m_textureHandle);
-		m_width = -1;
-		m_height = -1;
-		SetImage(ims);
-	}
+		Image(const Image&) = delete;
 
-	~Image()
-	{
-		glDeleteTextures(1, &m_textureHandle);
-	}
-
-	GLuint GetHandle() const
-	{
-		return m_textureHandle;
-	}
-
-	void GrayScaleToAlpha()
-	{
-		GLint swizzleMask[] = { GL_ONE, GL_ONE, GL_ONE, GL_RED };
-		glBindTexture(GL_TEXTURE_2D, m_textureHandle);
-		glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask);
-		glBindTexture(GL_TEXTURE_2D, 0);
-	}
-
-	glm::vec2 GetSize() const
-	{
-		return glm::vec2(m_width, m_height);
-	}
-
-	ssize_t m_width;
-	ssize_t m_height;
-
-	void SetImage(std::vector<ndarray_uint8> ims)
-	{
-		Render::debug_guard<> m_guard;
-		const py::buffer_info& ndarray_info = ims[0].request();
-		glBindTexture(GL_TEXTURE_2D, m_textureHandle);
-
-		GLint backup;
-		glGetIntegerv(GL_UNPACK_ALIGNMENT, &backup);
-		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-		GLint swizzleMask_R[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
-		GLint swizzleMask_RG[] = { GL_RED, GL_GREEN, GL_ZERO, GL_ONE };
-		GLint swizzleMask_RGB[] = { GL_RED, GL_GREEN, GL_BLUE, GL_ONE };
-		GLint swizzleMask_RGBA[] = { GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA };
-
-		if (ndarray_info.ndim == 2)
+		Image()
 		{
-			m_width = ndarray_info.shape[1];
-			m_height = ndarray_info.shape[0];
-			glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask_R);
-			int mipmap = 0;
-			for (auto im: ims)
-			{
-				glTexImage2D(GL_TEXTURE_2D, mipmap, GL_R8, im.request().shape[1], im.request().shape[0], 0, GL_RED, GL_UNSIGNED_BYTE, im.request().ptr);
-				mipmap += 1;
-			}
+			glGenTextures(1, &m_textureHandle);
+			m_width = -1;
+			m_height = -1;
 		}
-		else if (ndarray_info.ndim == 3)
+
+		Image(std::vector<ndarray_uint8> ims)
 		{
-			m_width = ndarray_info.shape[1];
-			m_height = ndarray_info.shape[0];
-			if (ndarray_info.shape[2] == 1)
+			glGenTextures(1, &m_textureHandle);
+			m_width = -1;
+			m_height = -1;
+			SetImage(ims);
+		}
+
+		~Image()
+		{
+			glDeleteTextures(1, &m_textureHandle);
+		}
+
+		GLuint GetHandle() const
+		{
+			return m_textureHandle;
+		}
+
+		void GrayScaleToAlpha()
+		{
+			GLint swizzleMask[] = {GL_ONE, GL_ONE, GL_ONE, GL_RED};
+			glBindTexture(GL_TEXTURE_2D, m_textureHandle);
+			glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask);
+			glBindTexture(GL_TEXTURE_2D, 0);
+		}
+
+		glm::vec2 GetSize() const
+		{
+			return glm::vec2(m_width, m_height);
+		}
+
+		ssize_t m_width;
+		ssize_t m_height;
+
+		void SetImage(std::vector<ndarray_uint8> ims)
+		{
+			Render::debug_guard<> m_guard;
+			const py::buffer_info& ndarray_info = ims[0].request();
+			glBindTexture(GL_TEXTURE_2D, m_textureHandle);
+
+			GLint backup;
+			glGetIntegerv(GL_UNPACK_ALIGNMENT, &backup);
+			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+			GLint swizzleMask_R[] = {GL_RED, GL_RED, GL_RED, GL_ONE};
+			GLint swizzleMask_RG[] = {GL_RED, GL_GREEN, GL_ZERO, GL_ONE};
+			GLint swizzleMask_RGB[] = {GL_RED, GL_GREEN, GL_BLUE, GL_ONE};
+			GLint swizzleMask_RGBA[] = {GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA};
+
+			if (ndarray_info.ndim == 2)
 			{
+				m_width = ndarray_info.shape[1];
+				m_height = ndarray_info.shape[0];
 				glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask_R);
 				int mipmap = 0;
 				for (auto im: ims)
 				{
-					glTexImage2D(GL_TEXTURE_2D, mipmap, GL_R8, im.request().shape[1], im.request().shape[0], 0, GL_RGB, GL_UNSIGNED_BYTE, im.request().ptr);
+					glTexImage2D(GL_TEXTURE_2D, mipmap, GL_R8, im.request().shape[1], im.request().shape[0], 0, GL_RED,
+					             GL_UNSIGNED_BYTE, im.request().ptr);
 					mipmap += 1;
 				}
 			}
-			else if (ndarray_info.shape[2] == 2)
+			else if (ndarray_info.ndim == 3)
 			{
-				glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask_RG);
-				int mipmap = 0;
-				for (auto im: ims)
+				m_width = ndarray_info.shape[1];
+				m_height = ndarray_info.shape[0];
+				if (ndarray_info.shape[2] == 1)
 				{
-					glTexImage2D(GL_TEXTURE_2D, mipmap, GL_RG8, im.request().shape[1], im.request().shape[0], 0, GL_RG, GL_UNSIGNED_BYTE, im.request().ptr);
-					mipmap += 1;
+					glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask_R);
+					int mipmap = 0;
+					for (auto im: ims)
+					{
+						glTexImage2D(GL_TEXTURE_2D, mipmap, GL_R8, im.request().shape[1], im.request().shape[0], 0,
+						             GL_RGB, GL_UNSIGNED_BYTE, im.request().ptr);
+						mipmap += 1;
+					}
 				}
-			}
-			else if (ndarray_info.shape[2] == 3)
-			{
-				glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask_RGB);
-				int mipmap = 0;
-				for (auto im: ims)
+				else if (ndarray_info.shape[2] == 2)
 				{
-					glTexImage2D(GL_TEXTURE_2D, mipmap, GL_SRGB8, im.request().shape[1], im.request().shape[0], 0, GL_RGB, GL_UNSIGNED_BYTE, im.request().ptr);
-					mipmap += 1;
+					glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask_RG);
+					int mipmap = 0;
+					for (auto im: ims)
+					{
+						glTexImage2D(GL_TEXTURE_2D, mipmap, GL_RG8, im.request().shape[1], im.request().shape[0], 0,
+						             GL_RG, GL_UNSIGNED_BYTE, im.request().ptr);
+						mipmap += 1;
+					}
 				}
-			}
-			else if (ndarray_info.shape[2] == 4)
-			{
-				glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask_RGBA);
-				int mipmap = 0;
-				for (auto im: ims)
+				else if (ndarray_info.shape[2] == 3)
 				{
-					glTexImage2D(GL_TEXTURE_2D, mipmap, GL_SRGB8_ALPHA8, im.request().shape[1], im.request().shape[0], 0, GL_RGBA, GL_UNSIGNED_BYTE, im.request().ptr);
-					mipmap += 1;
+					glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask_RGB);
+					int mipmap = 0;
+					for (auto im: ims)
+					{
+						glTexImage2D(GL_TEXTURE_2D, mipmap, GL_SRGB8, im.request().shape[1], im.request().shape[0], 0,
+						             GL_RGB, GL_UNSIGNED_BYTE, im.request().ptr);
+						mipmap += 1;
+					}
+				}
+				else if (ndarray_info.shape[2] == 4)
+				{
+					glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask_RGBA);
+					int mipmap = 0;
+					for (auto im: ims)
+					{
+						glTexImage2D(GL_TEXTURE_2D, mipmap, GL_SRGB8_ALPHA8, im.request().shape[1],
+						             im.request().shape[0], 0, GL_RGBA, GL_UNSIGNED_BYTE, im.request().ptr);
+						mipmap += 1;
+					}
+				}
+				else
+				{
+					glBindTexture(GL_TEXTURE_2D, 0);
+					glPixelStorei(GL_UNPACK_ALIGNMENT, backup);
+					throw runtime_error("Wrong number of channels. Should be either 1, 2, 3, or 4, but got %d",
+					                    (int) ndarray_info.shape[2]);
 				}
 			}
 			else
 			{
 				glBindTexture(GL_TEXTURE_2D, 0);
 				glPixelStorei(GL_UNPACK_ALIGNMENT, backup);
-				throw runtime_error("Wrong number of channels. Should be either 1, 2, 3, or 4, but got %d", (int)ndarray_info.shape[2]);
+				throw runtime_error("Wrong number of dimensions. Should be either 2 or 3, but got %d",
+				                    (int) ndarray_info.ndim);
 			}
-		}
-		else
-		{
-			glBindTexture(GL_TEXTURE_2D, 0);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			if (ims.size() > 1)
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+			else
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
 			glPixelStorei(GL_UNPACK_ALIGNMENT, backup);
-			throw runtime_error("Wrong number of dimensions. Should be either 2 or 3, but got %d", (int)ndarray_info.ndim);
+			glBindTexture(GL_TEXTURE_2D, 0);
 		}
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		if (ims.size() > 1)
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-		else
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-		glPixelStorei(GL_UNPACK_ALIGNMENT, backup);
-		glBindTexture(GL_TEXTURE_2D, 0);
-	}
-
-	GLuint m_textureHandle;
-};
-
-typedef std::shared_ptr<Image> ImagePtr;
-typedef std::shared_ptr<SimpleText> SimpleTextPtr;
-
-class Context
-{
-public:
-	enum RECENTER
-	{
-		FIT_DOCUMENT,
-		ORIGINAL_SIZE
+		GLuint m_textureHandle;
 	};
 
-	Context& operator=(const Context&) = delete;
-	Context(const Context&) = delete;
-	Context() = default;
+	typedef std::shared_ptr<Image> ImagePtr;
 
-	void Init(int width, int height, const std::string& name);
+	class Context
+	{
+	public:
+		enum RECENTER
+		{
+			FIT_DOCUMENT,
+			ORIGINAL_SIZE
+		};
 
-	void Resize(int width, int height);
+		Context& operator=(const Context&) = delete;
+		Context(const Context&) = delete;
+		Context() = default;
 
-	void Recenter(RECENTER r);
-	void Recenter(float x0, float y0, float x1, float y1);
+		void Init(int width, int height, const std::string& name);
 
-	void NewFrame();
+		void Resize(int width, int height);
 
-	void Render();
+		void Recenter(RECENTER r);
+		void Recenter(float x0, float y0, float x1, float y1);
 
-	bool ShouldClose();
+		void NewFrame();
 
-	int GetWidth() const;
+		void Render();
 
-	int GetHeight() const;
+		bool ShouldClose();
 
-	void Point(float x, float y, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color, float point_size) const;
-	void Box(float minx, float miny, float maxx, float maxy, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color_stroke, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color_fill) const;
+		int GetWidth() const;
 
-	~Context();
+		int GetHeight() const;
 
-	GLFWwindow* m_window = nullptr;
-	int m_width;
-	int m_height;
-	py::function mouse_button_callback;
-	py::function mouse_position_callback;
-	py::function keyboard_callback;
+		void Point(float x, float y, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color, float point_size) const;
+		void Box(float minx, float miny, float maxx, float maxy, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color_stroke, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color_fill) const;
 
-	Camera2D m_camera;
-	Render::DebugRenderer m_dr;
-	ImagePtr m_image;
-	NVGcontext* vg = nullptr;
-	Render::VertexSpec m_spec;
-	Render::VertexBuffer m_buff;
-	Render::ProgramPtr m_program;
-	Render::Uniform u_modelViewProj;
-	Render::Uniform u_texture;
-	SimpleTextPtr m_text;
-};
+		~Context();
+
+		GLFWwindow* m_window = nullptr;
+		int m_width;
+		int m_height;
+		py::function mouse_button_callback;
+		py::function mouse_position_callback;
+		py::function keyboard_callback;
+
+		Camera2D m_camera;
+		Render::DebugRenderer m_dr;
+		ImagePtr m_image;
+		NVGcontext* vg = nullptr;
+		Render::VertexSpec m_spec;
+		Render::VertexBuffer m_buff;
+		Render::ProgramPtr m_program;
+		Render::Uniform u_modelViewProj;
+		Render::Uniform u_texture;
+		SimpleTextPtr m_text;
+	};
+}
 
 struct Vertex
 {
@@ -255,7 +266,7 @@ struct Vertex
 	glm::vec2 uv;
 };
 
-void Context::Init(int width, int height, const std::string& name)
+void pth::Context::Init(int width, int height, const std::string& name)
 {
 	if (nullptr == m_window)
 	{
@@ -418,7 +429,7 @@ void Context::Init(int width, int height, const std::string& name)
 }
 
 
-void Context::Recenter(RECENTER r)
+void pth::Context::Recenter(RECENTER r)
 {
 	if (!m_image)
 	{
@@ -452,7 +463,7 @@ void Context::Recenter(RECENTER r)
 }
 
 
-void Context::Recenter(float x0, float y0, float x1, float y1)
+void pth::Context::Recenter(float x0, float y0, float x1, float y1)
 {
 	if (!m_image)
 	{
@@ -482,14 +493,14 @@ void Context::Recenter(float x0, float y0, float x1, float y1)
 }
 
 
-Context::~Context()
+pth::Context::~Context()
 {
 	glfwSetWindowSizeCallback(m_window, nullptr);
 	glfwTerminate();
 }
 
 
-void Context::Render()
+void pth::Context::Render()
 {
 	auto size = m_image->GetSize();
 
@@ -546,7 +557,7 @@ void Context::Render()
 }
 
 
-void Context::NewFrame()
+void pth::Context::NewFrame()
 {
 	double x, y;
 	glfwGetCursorPos(m_window, &x, &y);
@@ -567,7 +578,7 @@ void Context::NewFrame()
 }
 
 
-void Context::Resize(int width, int height)
+void pth::Context::Resize(int width, int height)
 {
 	if (!m_image)
 	{
@@ -588,22 +599,22 @@ void Context::Resize(int width, int height)
 }
 
 
-bool Context::ShouldClose()
+bool pth::Context::ShouldClose()
 {
 	return glfwWindowShouldClose(m_window) != 0;
 }
 
-int Context::GetWidth() const
+int pth::Context::GetWidth() const
 {
 	return m_width;
 }
 
-int Context::GetHeight() const
+int pth::Context::GetHeight() const
 {
 	return m_height;
 }
 
-void Context::Point(float x, float y, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color, float point_size) const
+void pth::Context::Point(float x, float y, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color, float point_size) const
 {
 	auto transform = m_camera.GetCanvasToWorld();
 
@@ -627,7 +638,7 @@ void Context::Point(float x, float y, std::tuple<uint8_t, uint8_t, uint8_t, uint
 	nvgFill(vg);
 }
 
-void Context::Box(float minx, float miny, float maxx, float maxy, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color_stroke, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color_fill) const
+void pth::Context::Box(float minx, float miny, float maxx, float maxy, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color_stroke, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color_fill) const
 {
 	auto transform = m_camera.GetCanvasToWorld();
 
@@ -645,63 +656,63 @@ void Context::Box(float minx, float miny, float maxx, float maxy, std::tuple<uin
 }
 
 
-PYBIND11_MODULE(_anntoolkit, m) {
-	m.doc() = "anntoolkit";
+PYBIND11_MODULE(_getoolkit, m) {
+	m.doc() = "getoolkit";
 
-	py::class_<Context>(m, "Context")
+	py::class_<pth::Context>(m, "Context")
 		.def(py::init())
-		.def("init", &Context::Init, "Initializes context and creates window")
-		.def("new_frame", &Context::NewFrame, "Starts a new frame. NewFrame must be called before any imgui functions")
-		.def("render", &Context::Render, "Finilizes the frame and draws all UI. Render must be called after all imgui functions")
-		.def("should_close", &Context::ShouldClose)
-		.def("width", &Context::GetWidth)
-		.def("height", &Context::GetHeight)
-		.def("set", [](Context& self, ImagePtr im)
+		.def("init", &pth::Context::Init, "Initializes context and creates window")
+		.def("new_frame", &pth::Context::NewFrame, "Starts a new frame. NewFrame must be called before any imgui functions")
+		.def("render", &pth::Context::Render, "Finilizes the frame and draws all UI. Render must be called after all imgui functions")
+		.def("should_close", &pth::Context::ShouldClose)
+		.def("width", &pth::Context::GetWidth)
+		.def("height", &pth::Context::GetHeight)
+		.def("set", [](pth::Context& self, pth::ImagePtr im)
 			{
 				self.m_image = im;
-				self.Recenter(Context::FIT_DOCUMENT);
+				self.Recenter(pth::Context::FIT_DOCUMENT);
 			})
-		.def("set_without_recenter", [](Context& self, ImagePtr im)
+		.def("set_without_recenter", [](pth::Context& self, pth::ImagePtr im)
 			{
 				self.m_image = im;
 			})
-		.def("recenter", [](Context& self)
+		.def("recenter", [](pth::Context& self)
 			{
-				self.Recenter(Context::FIT_DOCUMENT);
+				self.Recenter(pth::Context::FIT_DOCUMENT);
 			})
-		.def("set_roi", [](Context& self, float x0, float y0, float x1, float y1)
+		.def("set_roi", [](pth::Context& self, float x0, float y0, float x1, float y1)
 			{
 				self.Recenter(x0, y0, x1, y1);
 			})
-		.def("__enter__", &Context::NewFrame)
-		.def("__exit__", [](Context& self, py::object, py::object, py::object)
+		.def("__enter__", &pth::Context::NewFrame)
+		.def("__exit__", [](pth::Context& self, py::object, py::object, py::object)
 			{
 				self.Render();
 			})
-		.def("set_mouse_button_callback", [](Context& self, py::function f){
+		.def("set_mouse_button_callback", [](pth::Context& self, py::function f){
 			self.mouse_button_callback = f;
 		})
-		.def("set_mouse_button_callback", [](Context& self, py::function f){
+		.def("set_mouse_button_callback", [](pth::Context& self, py::function f){
 			self.mouse_button_callback = f;
 		})
-		.def("set_mouse_position_callback", [](Context& self, py::function f){
+		.def("set_mouse_position_callback", [](pth::Context& self, py::function f){
 			self.mouse_position_callback = f;
 		})
-		.def("get_mouse_position", [](Context& self){
+		.def("get_mouse_position", [](pth::Context& self){
 				double x, y;
 				glfwGetCursorPos(self.m_window, &x, &y);
 				glm::vec2 cursorposition = glm::vec2(x, y);
 				auto local = glm::vec2(self.m_camera.GetWorldToCanvas() * glm::vec3(cursorposition, 1.0f));
 				return std::make_tuple(float(x), float(y), local.x, local.y);
 		})
-		.def("set_keyboard_callback", [](Context& self, py::function f){
+		.def("set_keyboard_callback", [](pth::Context& self, py::function f){
 			self.keyboard_callback = f;
 		})
-		.def("text", [](Context& self, const char* str, int x, int y, SimpleText::Alignment align)
+		.def("text", [](pth::Context& self, const char* str, int x, int y, SimpleText::Alignment align)
 		{
 			self.m_text->Label(str, x, y, align);
 		})
-		.def("text", [](Context& self, const char* str, int x, int y, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> bg_color, SimpleText::Alignment align)
+		.def("text", [](pth::Context& self, const char* str, int x, int y, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> bg_color, SimpleText::Alignment align)
 		{
 			self.m_text->SetColorf(SimpleText::TEXT_COLOR, std::get<0>(color) / 255.f, std::get<1>(color) / 255.f, std::get<2>(color) / 255.f, std::get<3>(color) / 255.f);
 			self.m_text->SetColorf(SimpleText::BACKGROUND_COLOR, std::get<0>(bg_color) / 255.f, std::get<1>(bg_color) / 255.f, std::get<2>(bg_color) / 255.f, std::get<3>(bg_color) / 255.f);
@@ -709,7 +720,7 @@ PYBIND11_MODULE(_anntoolkit, m) {
 			self.m_text->Label(str, x, y, align);
 			self.m_text->ResetFont();
 		})
-		.def("text_loc", [](Context& self, const char* str, float x, float y, SimpleText::Alignment align)
+		.def("text_loc", [](pth::Context& self, const char* str, float x, float y, SimpleText::Alignment align)
 		{
 			auto transform = self.m_camera.GetCanvasToWorld();
 
@@ -718,22 +729,22 @@ PYBIND11_MODULE(_anntoolkit, m) {
 
 			self.m_text->Label(str, pos.x, pos.y, align);
 		})
-		.def("loc_2_win", [](Context& self, float x, float y)
+		.def("loc_2_win", [](pth::Context& self, float x, float y)
 		{
 			auto transform = self.m_camera.GetCanvasToWorld();
 			glm::vec2 pos_local = glm::vec2(x, y);
 			glm::vec2 pos = transform * glm::vec3(pos_local, 1);
 			return std::tuple<float, float>(pos.x, pos.y);
 		})
-		.def("win_2_loc", [](Context& self, float x, float y)
+		.def("win_2_loc", [](pth::Context& self, float x, float y)
 		{
 			auto transform = self.m_camera.GetWorldToCanvas();
 			glm::vec2 pos_local = glm::vec2(x, y);
 			glm::vec2 pos = transform * glm::vec3(pos_local, 1);
 			return std::tuple<float, float>(pos.x, pos.y);
 		})
-		.def("get_scale", [] (Context& self) { return 1.0 / self.m_camera.GetFOV(); })
-		.def("text_loc", [](Context& self, const char* str, float x, float y, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> bg_color, SimpleText::Alignment align)
+		.def("get_scale", [] (pth::Context& self) { return 1.0 / self.m_camera.GetFOV(); })
+		.def("text_loc", [](pth::Context& self, const char* str, float x, float y, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> bg_color, SimpleText::Alignment align)
 		{
 			auto transform = self.m_camera.GetCanvasToWorld();
 
@@ -747,8 +758,8 @@ PYBIND11_MODULE(_anntoolkit, m) {
 			self.m_text->Label(str, pos.x, pos.y, align);
 			self.m_text->ResetFont();
 		})
-		.def("point",  &Context::Point, py::arg("x"), py::arg("y"), py::arg("color"), py::arg("radius") = 5)
-		.def("box",  &Context::Box);
+		.def("point",  &pth::Context::Point, py::arg("x"), py::arg("y"), py::arg("color"), py::arg("radius") = 5)
+		.def("box",  &pth::Context::Box);
 
 		py::enum_<SpecialKeys>(m, "SpecialKeys")
 			.value("KeyEscape", KeyEscape)
@@ -769,9 +780,9 @@ PYBIND11_MODULE(_anntoolkit, m) {
 			.value("Right", SimpleText::RIGHT)
 			.export_values();
 
-	py::class_<Image, std::shared_ptr<Image> >(m, "Image")
+	py::class_<pth::Image, std::shared_ptr<pth::Image> >(m, "Image")
 			.def(py::init<std::vector<ndarray_uint8>>(), "")
-			.def("grayscale_to_alpha", &Image::GrayScaleToAlpha, "For grayscale images, uses values as alpha")
-			.def_readonly("width", &Image::m_width)
-			.def_readonly("height", &Image::m_height);
+			.def("grayscale_to_alpha", &pth::Image::GrayScaleToAlpha, "For grayscale images, uses values as alpha")
+			.def_readonly("width", &pth::Image::m_width)
+			.def_readonly("height", &pth::Image::m_height);
 }

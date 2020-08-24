@@ -1,5 +1,5 @@
 #pragma once
-#include "TextureFormat.h"
+#include "Render/TextureReaders/TextureFormat.h"
 #include <glm/glm.hpp>
 #include <memory>
 

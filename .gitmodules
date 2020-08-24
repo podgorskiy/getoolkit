@@ -22,3 +22,24 @@
 [submodule "libs/imgui"]
 	path = libs/imgui
 	url = https://github.com/ocornut/imgui.git
+[submodule "libs/scriberlib"]
+	path = libs/scriberlib
+	url = https://github.com/podgorskiy/scriberlib.git
+[submodule "libs/yaml-cpp"]
+	path = libs/yaml-cpp
+	url = https://github.com/jbeder/yaml-cpp.git
+[submodule "libs/fsal"]
+	path = libs/fsal
+	url = https://github.com/podgorskiy/fsal.git
+[submodule "libs/lz4"]
+	path = libs/lz4
+	url = https://github.com/lz4/lz4.git
+[submodule "libs/zlib"]
+	path = libs/zlib
+	url = https://github.com/madler/zlib.git
+[submodule "libs/pugixml"]
+	path = libs/pugixml
+	url = https://github.com/zeux/pugixml.git
+[submodule "libs/stb"]
+	path = libs/stb
+	url = https://github.com/nothings/stb.git

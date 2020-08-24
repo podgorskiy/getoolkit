@@ -217,7 +217,7 @@ extra_compile_cpp_args = {
 
 sources = list(glob.glob('sources/*.c*')) + list(glob.glob('sources/Vector/*.c*'))
 
-extension = Extension("_anntoolkit",
+extension = Extension("_getoolkit",
                              sources + imgui + glfw + glfw_platform[target_os] + ["libs/gl3w/src/gl3w.c"],
                              define_macros = definitions[target_os],
                              include_dirs=[
@@ -237,11 +237,11 @@ extension = Extension("_anntoolkit",
 extension.extra_compile_cpp_args = extra_compile_cpp_args[target_os]
 
 setup(
-    name='anntoolkit',
+    name='getoolkit',
 
     version='0.0.5',
 
-    description='anntoolkit',
+    description='getoolkit',
     long_description=long_description,
     long_description_content_type='text/markdown',
 
@@ -264,7 +264,7 @@ setup(
 
     keywords='imgui ui',
 
-    packages=['anntoolkit'],
+    packages=['getoolkit'],
 
     ext_modules=[extension],
 )
