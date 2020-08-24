@@ -138,21 +138,21 @@ class App(anntoolkit.App):
 
     def on_keyboard(self, key, down, mods):
         if down:
-            if key == anntoolkit.KeyLeft:
+            if key == anntoolkit.SpecialKeys.KeyLeft:
                 self.load_prev()
-            if key == anntoolkit.KeyRight:
+            if key == anntoolkit.SpecialKeys.KeyRight:
                 self.load_next()
-            if key == anntoolkit.KeyUp:
+            if key == anntoolkit.SpecialKeys.KeyUp:
                 self.load_next_not_annotated()
-            if key == anntoolkit.KeyDown:
+            if key == anntoolkit.SpecialKeys.KeyDown:
                 self.load_prev_not_annotated()
-            if key == anntoolkit.KeyDelete:
+            if key == anntoolkit.SpecialKeys.KeyDelete:
                 k = self.paths[self.iter]
                 if k in self.annotation:
                     del self.annotation[k]
                 with open(SAVE_PATH, 'wb') as f:
                     pickle.dump(self.annotation, f)
-            if key == anntoolkit.KeyBackspace:
+            if key == anntoolkit.SpecialKeys.KeyBackspace:
                 k = self.paths[self.iter]
                 if k in self.annotation and len(self.annotation[k]) > 0:
                     self.annotation[k] = self.annotation[k][:-1]
@@ -162,6 +162,6 @@ class App(anntoolkit.App):
                 self.iter = random.randrange(len(self.paths))
                 self.load_next()
 
-app = App()
 
+app = App()
 app.run()

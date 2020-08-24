@@ -36,6 +36,18 @@ except ImportError as e:
         print(str(r[1]))
     raise e
 
+KeyEscape = SpecialKeys.KeyEscape
+KeyEnter = SpecialKeys.KeyEnter
+KeyTab = SpecialKeys.KeyTab
+KeyBackspace = SpecialKeys.KeyBackspace
+KeyInsert = SpecialKeys.KeyInsert
+KeyDelete = SpecialKeys.KeyDelete
+KeyRight = SpecialKeys.KeyRight
+KeyLeft = SpecialKeys.KeyLeft
+KeyDown = SpecialKeys.KeyDown
+KeyUp = SpecialKeys.KeyUp
+
+
 from anntoolkit.generate_mipmaps import generate_mipmaps
 from anntoolkit.app import App
 
