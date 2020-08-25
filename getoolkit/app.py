@@ -52,6 +52,8 @@ class App:
     def __init__(self, width=600, height=600, title="Hello"):
         self._ctx = getoolkit.Context()
         self._ctx.init(width, height, title)
+        self.world_width = 0
+        self.world_height = 0
 
         def mouse_button(down, x, y, lx, ly):
             self.on_mouse_button(down, x, y, lx, ly)
@@ -190,7 +192,7 @@ class App:
         """
         pass
 
-    def set_image(self, image, recenter=True):
+    def set_world_size(self, w, h, recenter=True):
         """ Sets the image to annotate
 
         .. note::
@@ -204,11 +206,11 @@ class App:
         """
         # m = anntoolkit.generate_mipmaps(image)
         # self._ctx.set(anntoolkit.Image(m))
-        self.image = image
+        self.world_width, self.world_height = w, h
         if recenter:
-            self._ctx.set(getoolkit.Image([image]))
+            self._ctx.set_world_size(w, h)
         else:
-            self._ctx.set_without_recenter(getoolkit.Image([image]))
+            self._ctx.set_without_recenter(w, h)
 
     def recenter(self):
         """ Resets zoom and recenters the image to fit in the window
@@ -279,7 +281,7 @@ class App:
         """
         self._ctx.point(x, y, color, radius)
 
-    def win_2_loc(self, x, y):
+    def window_2_world(self, x, y):
         """Convert window space to image space
 
         Arguments:
@@ -291,7 +293,7 @@ class App:
         """
         return self._ctx.win_2_loc(x, y)
 
-    def loc_2_win(self, x, y):
+    def world_2_window(self, x, y):
         """Convert image space to window space
 
         Arguments:

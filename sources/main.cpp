@@ -418,10 +418,10 @@ void pth::Context::Init(int width, int height, const std::string& name)
 			    float scale = length(fwidth(fragCoord));
 
 				float a = 0.2;
-				float s = 0.8;
+				float s = 1.0;
 				float w = 0.5;
 
-				for(int i = 0; i < 3; ++i)
+				for(int i = 0; i < 4; ++i)
 				{
 					if (scale * 10. < s)
 					{
@@ -438,7 +438,8 @@ void pth::Context::Init(int width, int height, const std::string& name)
 			void main()
 			{
 				vec2 q = v_pos * vec2(0.5, 0.5) + vec2(0.5);
-				q *= u_world_size;
+				q *= (u_world_size + 1);
+				q -= 0.5;
 				make_grid(gl_FragColor, q);
 			}
 		)";
@@ -476,8 +477,6 @@ void pth::Context::Recenter(float w, float h, RECENTER r)
 	auto size = m_world_size;
 	if (r == RECENTER::FIT_DOCUMENT)
 	{
-		glm::vec2 r = glm::vec2(m_width, m_height) / glm::vec2(size);
-
 		if (m_width * 1.0f / m_height > size.x * 1.0f / size.y)
 		{
 			m_camera.SetFOV(size.y * 1.2f / m_height);
