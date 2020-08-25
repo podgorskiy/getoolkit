@@ -222,7 +222,7 @@ namespace pth
 
 		void Resize(int width, int height);
 
-		void Recenter(RECENTER r);
+		void Recenter(float w, float h, RECENTER r);
 		void Recenter(float x0, float y0, float x1, float y1);
 
 		void NewFrame();
@@ -249,13 +249,13 @@ namespace pth
 
 		Camera2D m_camera;
 		Render::DebugRenderer m_dr;
-		ImagePtr m_image;
+		glm::vec2 m_world_size;
 		NVGcontext* vg = nullptr;
 		Render::VertexSpec m_spec;
 		Render::VertexBuffer m_buff;
 		Render::ProgramPtr m_program;
 		Render::Uniform u_modelViewProj;
-		Render::Uniform u_texture;
+		Render::Uniform u_world_size;
 		SimpleTextPtr m_text;
 	};
 }
@@ -385,13 +385,18 @@ void pth::Context::Init(int width, int height, const std::string& name)
 		)";
 
 		const char* fragment_shader_src = R"(
-			uniform sampler2D u_texture;
+			uniform vec2 u_world_size;
 			varying vec2 v_pos;
 
-			vec4 render(float d, vec3 color, float w)
+			vec4 render(float d, vec4 color, float w)
 			{
-			    float anti = fwidth(d);
-			    return vec4(color, 1.0-smoothstep(-anti, anti, d - w));
+			    float anti = fwidth(d) * 1.0;
+			    return vec4(color.rgb, color.a * (1.0-smoothstep(-anti, anti, d - w)));
+			}
+
+			vec4 gamma(vec4 c)
+			{
+				return vec4(pow(c.xyz, vec3(2.2)), c.a);
 			}
 
 			void render_layer(inout vec4 c, vec4 layer)
@@ -408,26 +413,39 @@ void pth::Context::Init(int width, int height, const std::string& name)
 
 			void make_grid(inout vec4 c, vec2 fragCoord)
 			{
-			    c = vec4( vec3(.7,.7,.7),1.0);
+			    c = vec4( pow(vec3(.12,.56,.81), vec3(2.2)),1.0);
 			    float d;
-			    d = grid(fragCoord, 10.0);
-			    float scale =  length(fwidth(fragCoord));
-			    render_layer(c, render(d, vec3(.5,.5,.5), 0.6 * scale));
-			    d = grid(fragCoord, 50.0);
-			    render_layer(c, render(d, vec3(.4,.4,.4), 0.8 * scale));
+			    float scale = length(fwidth(fragCoord));
+
+				float a = 0.2;
+				float s = 0.8;
+				float w = 0.5;
+
+				for(int i = 0; i < 3; ++i)
+				{
+					if (scale * 10. < s)
+					{
+						d = grid(fragCoord, s);
+				        render_layer(c, render(d, gamma(vec4(.8,.8,.7, a)), w * scale));
+
+						a *= 1.7;
+						w += 0.3;
+					}
+					s *= 5.;
+				}
 			}
 
 			void main()
 			{
 				vec2 q = v_pos * vec2(0.5, 0.5) + vec2(0.5);
-				q *= textureSize(u_texture, 0);
+				q *= u_world_size;
 				make_grid(gl_FragColor, q);
 			}
 		)";
 
 		m_program = Render::MakeProgram(vertex_shader_src, fragment_shader_src);
 		u_modelViewProj = m_program->GetUniform("u_modelViewProj");
-		u_texture = m_program->GetUniform("u_texture");
+		u_world_size = m_program->GetUniform("u_world_size");
 		std::vector<glm::vec2> vertices = {
 				{-1.0f, -1.0f},
 				{ 1.0f, -1.0f},
@@ -452,13 +470,10 @@ void pth::Context::Init(int width, int height, const std::string& name)
 }
 
 
-void pth::Context::Recenter(RECENTER r)
+void pth::Context::Recenter(float w, float h, RECENTER r)
 {
-	if (!m_image)
-	{
-		throw std::runtime_error("No image assigned");
-	}
-	auto size = m_image->GetSize();
+	m_world_size = glm::vec2(w, h);
+	auto size = m_world_size;
 	if (r == RECENTER::FIT_DOCUMENT)
 	{
 		glm::vec2 r = glm::vec2(m_width, m_height) / glm::vec2(size);
@@ -488,10 +503,6 @@ void pth::Context::Recenter(RECENTER r)
 
 void pth::Context::Recenter(float x0, float y0, float x1, float y1)
 {
-	if (!m_image)
-	{
-		throw std::runtime_error("No image assigned");
-	}
 	auto p0 = glm::vec2(x0, y0);
 	auto p1 = glm::vec2(x1, y1);
 	auto size = p1 - p0;
@@ -525,18 +536,17 @@ pth::Context::~Context()
 
 void pth::Context::Render()
 {
-	auto size = m_image->GetSize();
+	auto size = m_world_size;
 
 	auto transform = m_camera.GetTransform();
 	glm::mat4 model = glm::scale(glm::mat4(1.0f), glm::vec3((size.x + 1) / 2.0f,  (size.y + 1) / 2.0f, 0.0f)) * glm::translate(glm::mat4(1.0f), glm::vec3(1.0, 1.0, 0.0f));
 	model[3].x -= 0.5;
 	model[3].y -= 0.5;
-	// Render::DrawRect(m_dr, glm::vec2(-1.0f), glm::vec&Image::2(1.0f), transform * model);
+	Render::DrawRect(m_dr, glm::vec2(-1.0f), glm::vec2(1.0f), transform * model);
 	{
 		m_program->Use();
 		u_modelViewProj.ApplyValue(transform * model);
-		//u_texture.ApplyValue(0);
-		glBindTexture(GL_TEXTURE_2D, m_image->GetHandle());
+		u_world_size.ApplyValue(m_world_size);
 
 		m_buff.Bind();
 		m_spec.Enable();
@@ -588,10 +598,6 @@ void pth::Context::NewFrame()
 	m_camera.Move(cursorposition.x, cursorposition.y);
 	m_camera.UpdateViewProjection(m_width, m_height);
 
-	if (!m_image)
-	{
-		throw std::runtime_error("No image assigned");
-	}
 	glfwMakeContextCurrent(m_window);
 	Render::debug_guard<> m_guard;
 	glViewport(0, 0, m_width, m_height);
@@ -603,15 +609,11 @@ void pth::Context::NewFrame()
 
 void pth::Context::Resize(int width, int height)
 {
-	if (!m_image)
-	{
-		throw std::runtime_error("No image assigned");
-	}
 	auto oldWindowBufferSize = glm::vec2(m_width, m_height);
 	m_width = width;
 	m_height = height;
 	m_camera.UpdateViewProjection(m_width, m_height);
-	auto size = m_image->GetSize();
+	auto size = m_world_size;
 
 	auto oldClientArea = oldWindowBufferSize;
 	auto clientArea = glm::vec2(m_width, m_height);// - glm::ivec2(0, MainMenuBar * m_window->GetPixelScale());
@@ -690,18 +692,17 @@ PYBIND11_MODULE(_getoolkit, m) {
 		.def("should_close", &pth::Context::ShouldClose)
 		.def("width", &pth::Context::GetWidth)
 		.def("height", &pth::Context::GetHeight)
-		.def("set", [](pth::Context& self, pth::ImagePtr im)
+		.def("set_world_size", [](pth::Context& self, float w, float h)
 			{
-				self.m_image = im;
-				self.Recenter(pth::Context::FIT_DOCUMENT);
+				self.Recenter(w, h, pth::Context::FIT_DOCUMENT);
 			})
-		.def("set_without_recenter", [](pth::Context& self, pth::ImagePtr im)
+		.def("set_without_recenter", [](pth::Context& self, float w, float h)
 			{
-				self.m_image = im;
+				self.m_world_size = glm::vec2(w, h);
 			})
 		.def("recenter", [](pth::Context& self)
 			{
-				self.Recenter(pth::Context::FIT_DOCUMENT);
+				self.Recenter(self.m_world_size.x, self.m_world_size.y, pth::Context::FIT_DOCUMENT);
 			})
 		.def("set_roi", [](pth::Context& self, float x0, float y0, float x1, float y1)
 			{
