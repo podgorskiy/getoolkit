@@ -388,17 +388,40 @@ void pth::Context::Init(int width, int height, const std::string& name)
 			uniform sampler2D u_texture;
 			varying vec2 v_pos;
 
-			vec3 sample(vec2 q)
+			vec4 render(float d, vec3 color, float w)
 			{
-				vec4 color = texture2D(u_texture, q, -0.3);
-				return color.rgb;
+			    float anti = fwidth(d);
+			    return vec4(color, 1.0-smoothstep(-anti, anti, d - w));
+			}
+
+			void render_layer(inout vec4 c, vec4 layer)
+			{
+			    c.rgb = mix(c.rgb, layer.rgb, layer.a);
+			}
+
+			float grid(vec2 uv, float s)
+			{
+			    uv += s/2.;
+			    vec2 a1 = mod(uv, s);
+			    return min(abs(a1.x - s / 2.), abs(a1.y - s / 2.));
+			}
+
+			void make_grid(inout vec4 c, vec2 fragCoord)
+			{
+			    c = vec4( vec3(.7,.7,.7),1.0);
+			    float d;
+			    d = grid(fragCoord, 10.0);
+			    float scale =  length(fwidth(fragCoord));
+			    render_layer(c, render(d, vec3(.5,.5,.5), 0.6 * scale));
+			    d = grid(fragCoord, 50.0);
+			    render_layer(c, render(d, vec3(.4,.4,.4), 0.8 * scale));
 			}
 
 			void main()
 			{
-				vec2 q = v_pos * vec2(0.5, 0.5);
-			    vec3 color = sample(vec2(0.5) + q).rgb;
-				gl_FragColor = vec4(color, 1.0);
+				vec2 q = v_pos * vec2(0.5, 0.5) + vec2(0.5);
+				q *= textureSize(u_texture, 0);
+				make_grid(gl_FragColor, q);
 			}
 		)";
 
@@ -512,7 +535,7 @@ void pth::Context::Render()
 	{
 		m_program->Use();
 		u_modelViewProj.ApplyValue(transform * model);
-		u_texture.ApplyValue(0);
+		//u_texture.ApplyValue(0);
 		glBindTexture(GL_TEXTURE_2D, m_image->GetHandle());
 
 		m_buff.Bind();
