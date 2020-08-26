@@ -526,7 +526,7 @@ void pth::Context::Init(int width, int height, const std::string& name)
 						a *= 1.7;
 						w += 0.3;
 					}
-					s *= 5.;
+					s *= 10.;
 				}
 			}
 
@@ -638,7 +638,7 @@ void pth::Context::Render()
 	glm::mat4 model = glm::scale(glm::mat4(1.0f), glm::vec3((size.x + 1) / 2.0f,  (size.y + 1) / 2.0f, 0.0f)) * glm::translate(glm::mat4(1.0f), glm::vec3(1.0, 1.0, 0.0f));
 	model[3].x -= 0.5;
 	model[3].y -= 0.5;
-	Render::DrawRect(m_dr, glm::vec2(-1.0f), glm::vec2(1.0f), transform * model);
+	// Render::DrawRect(m_dr, glm::vec2(-1.0f), glm::vec2(1.0f), transform * model);
 	{
 		m_program->Use();
 		u_modelViewProj.ApplyValue(transform * model);
@@ -678,8 +678,8 @@ void pth::Context::Render()
 	}
 	auto c2w_transform = m_camera.GetCanvasToWorld();
 
-	using Render::operator""_c;
-	m_2drender.GetEncoder()->Rect(glm::aabb2(c2w_transform * glm::vec3(0.,  0., 1.), c2w_transform * glm::vec3(110., 160., 1.0)), 0xFF33FFFF_c, glm::vec4(4.0));
+	//using Render::operator""_c;
+	//m_2drender.GetEncoder()->Rect(glm::aabb2(c2w_transform * glm::vec3(0.,  0., 1.), c2w_transform * glm::vec3(110., 160., 1.0)), 0xFF33FFFF_c, glm::vec4(4.0));
 
 	Render::View view_box(glm::vec2(m_width, m_height), 72);
 	m_2drender.SetUp(view_box);

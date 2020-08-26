@@ -16,6 +16,10 @@ class Node(object):
         self.name = name
         self.children = children if children is not None else []
         self.id = random.randint(0, 1000000)
+        self.width = 10.
+        self.height = 10.
+        self.pos_x = 0.
+        self.pos_y = 0.
 
 
 class App(getoolkit.App):
@@ -69,8 +73,6 @@ class App(getoolkit.App):
 
         self.point(*self.cursor_pos_world, (230, 10, 10, 240), radius=2.)
 
-        self.encoder.rect(self.transform(getoolkit.vec2(0., 0.)), self.transform(getoolkit.vec2(400., 400.)), (200, 100, 150, 200))
-
         if bimpy.button("New Node"):
             self.new_node()
 
@@ -114,10 +116,37 @@ class App(getoolkit.App):
 
         nstr = bimpy.String(self.selected_node.name if has_selection else '')
         bimpy.input_text('Name', nstr, 256)
+
+        nwidth = bimpy.Float(self.selected_node.width if has_selection else 0.)
+        nheigth = bimpy.Float(self.selected_node.height if has_selection else 0.)
+        bimpy.input_float2('size', nwidth, nheigth)
+
+        nposx = bimpy.Float(self.selected_node.pos_x if has_selection else 0.)
+        nposy = bimpy.Float(self.selected_node.pos_y if has_selection else 0.)
+        bimpy.input_float2('position', nposx, nposy)
+
         if has_selection:
             self.selected_node.name = nstr.value
+            self.selected_node.width = nwidth.value
+            self.selected_node.height = nheigth.value
+            self.selected_node.pos_x = nposx.value
+            self.selected_node.pos_y = nposy.value
 
         bimpy.text("ID: %s" % (str(self.selected_node.id) if has_selection else ''))
+
+        def dnodes(l, p_pox=0, p_poy=0):
+            for n in l:
+                minp = getoolkit.vec2(n.pos_x + p_pox, n.pos_y + p_poy)
+                minp = self.transform(minp)
+                maxp = getoolkit.vec2(n.pos_x + n.width + p_pox, n.pos_y + n.height + p_poy)
+                maxp = self.transform(maxp)
+                self.encoder.rect(minp, maxp, (200, 100, 150, 200))
+
+                if len(n.children) != 0:
+                    dnodes(n.children, n.pos_x + p_pox, n.pos_y + p_poy)
+
+        dnodes(self.root_nodes)
+
 
         # if k in self.annotation:
         #     self.text("Points count %d" % len(self.annotation[k]), 10, 50)
