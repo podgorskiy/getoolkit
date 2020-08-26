@@ -5,9 +5,17 @@ import pickle
 import numpy as np
 import random
 import bimpy
+import random
 
 LIBRARY_PATH = 'images'
 SAVE_PATH = 'save.pth'
+
+
+class Node(object):
+    def __init__(self, name='', children=None):
+        self.name = name
+        self.children = children if children is not None else []
+        self.id = random.randint(0, 2^64)
 
 
 class App(getoolkit.App):
@@ -29,6 +37,17 @@ class App(getoolkit.App):
 
         self.set_world_size(1000, 1000)
         self.grid_snap_step = 5
+        self.root_nodes = []
+        self.selected_node = None
+        if os.path.exists(SAVE_PATH):
+            with open(SAVE_PATH, 'rb') as f:
+                self.root_nodes = pickle.load(f)
+
+    def new_node(self):
+        if self.selected_node is not None:
+            self.selected_node.children.append(Node('New node'))
+        else:
+            self.root_nodes.append(Node('New node'))
 
     def grid_snap(self, pos):
         x, y = pos
@@ -50,6 +69,36 @@ class App(getoolkit.App):
         self.point(*self.cursor_pos_world, (230, 10, 10, 240), radius=2.)
 
         self.encoder.rect(self.transform(getoolkit.vec2(0., 0.)), self.transform(getoolkit.vec2(400., 400.)), (200, 100, 150, 200))
+
+        if bimpy.button("New Node"):
+            self.new_node()
+
+        def pnodes(l):
+            for n in l:
+                node_flags = bimpy.OpenOnArrow | bimpy.OpenOnDoubleClick
+                if n == self.selected_node:
+                    node_flags |= bimpy.Selected
+
+                if len(n.children) == 0:
+                    node_flags |= bimpy.Leaf | bimpy.NoTreePushOnOpen
+
+                node_open = bimpy.tree_node_ex(n.id, node_flags, n.name)
+                if bimpy.is_item_clicked():
+                    if self.selected_node == n:
+                         self.selected_node = None
+                    else:
+                        self.selected_node = n
+
+                if node_open and len(n.children) != 0:
+                    pnodes(n.children)
+                    bimpy.tree_pop()
+
+        pnodes(self.root_nodes)
+
+        if self.selected_node is not None:
+            str = bimpy.String(self.selected_node.name)
+            bimpy.input_text('Name', str, 256)
+            self.selected_node.name = str.value
 
         # if k in self.annotation:
         #     self.text("Points count %d" % len(self.annotation[k]), 10, 50)
@@ -121,15 +170,10 @@ class App(getoolkit.App):
             #         del self.annotation[k]
             #     with open(SAVE_PATH, 'wb') as f:
             #         pickle.dump(self.annotation, f)
-            # if key == getoolkit.SpecialKeys.KeyBackspace:
-            #     k = self.paths[self.iter]
-            #     if k in self.annotation and len(self.annotation[k]) > 0:
-            #         self.annotation[k] = self.annotation[k][:-1]
-            #     with open(SAVE_PATH, 'wb') as f:
-            #         pickle.dump(self.annotation, f)
-            # if key == 'R':
-            #     self.iter = random.randrange(len(self.paths))
-            #     self.load_next()
+            if key == getoolkit.SpecialKeys.KeyDelete:
+                with open(SAVE_PATH, 'wb') as f:
+                    pickle.dump(self.root_nodes, f)
+
 
 
 app = App()
