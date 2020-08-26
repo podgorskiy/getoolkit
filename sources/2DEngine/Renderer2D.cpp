@@ -24,18 +24,50 @@ Renderer2D::~Renderer2D()
 
 void Renderer2D::Init()
 {
-//	m_programCol = Render::MakeProgram("vs_gui.bin", "fs_gui.bin");
-//	m_programTex = Render::MakeProgram("vs_gui.bin", "fs_gui_tex.bin");
-//
-//	u_texture = m_programTex->GetUniform("u_texture");
-//
-//	m_vertexSpec
-//		.begin()
-//		.add(bgfx::Attrib::Position,  2, bgfx::AttribType::Float)
-//		.add(bgfx::Attrib::TexCoord0, 2, bgfx::AttribType::Float)
-//		.add(bgfx::Attrib::Color0,    4, bgfx::AttribType::Uint8, true)
-//		.end();
-//
+	const char* vertex_shader_src = R"(#version 300 es
+		in vec2 a_position;
+		in vec2 a_uv;
+		in vec4 a_color;
+
+		uniform mat4 u_transform;
+
+		out vec4 v_color;
+
+		void main()
+		{
+			v_color = a_color;
+			gl_Position = u_transform * vec4(a_position, 0.0, 1.0);
+		}
+	)";
+
+	const char* fragment_shader_src = R"(#version 300 es
+		precision mediump float;
+		in vec4 v_color;
+		out vec4 color;
+
+		void main()
+		{
+			color = v_color;
+		}
+	)";
+
+	m_program = Render::MakeProgram(vertex_shader_src, fragment_shader_src);
+
+	m_vertexSpec = Render::VertexSpecMaker()
+			.PushType<glm::vec2>("a_position")
+			.PushType<glm::vec2>("a_uv")
+			.PushType<glm::vec<4, uint8_t> >("a_color", true);
+
+	m_vertexSpec.CollectHandles(m_program);
+
+	m_uniform_transform = m_program->GetUniformLocation("u_transform");
+
+	glGenBuffers(1, &m_indexBufferHandle);
+	glGenBuffers(1, &m_vertexBufferHandle);
+
+	u_transform = m_program->GetUniform("u_transform");
+	u_texture = m_program->GetUniform("u_texture");
+
 //	Scriber::Driver::SetCustomIOFunctions(
 //			[this](const char* filename, const char* mode)
 //			{
@@ -86,16 +118,15 @@ void Renderer2D::Init()
 //			});
 
 	//m_text_backend = std::make_shared<TextBackend>();
-	m_text_driver.SetBackend(m_text_backend);
+	//m_text_driver.SetBackend(m_text_backend);
 
-	auto id = m_text_driver.NewTypeface("NotoSans");
-	m_text_driver.AndFontToTypeface(id, "fonts/NotoSans-Regular.ttf", Scriber::FontStyle::Regular);
+	//auto id = m_text_driver.NewTypeface("NotoSans");
+	//m_text_driver.AndFontToTypeface(id, "fonts/NotoSans-Regular.ttf", Scriber::FontStyle::Regular);
 }
 
 void Renderer2D::SetUp(View view_box)
 {
-	auto prj = glm::ortho(view_box.view_box.minp.x, view_box.view_box.maxp.x, view_box.view_box.maxp.y, view_box.view_box.minp.y);
-	//bgfx::setViewTransform(ViewIds::GUI, nullptr, &prj[0]);
+	m_prj = glm::ortho(view_box.view_box.minp.x, view_box.view_box.maxp.x, view_box.view_box.maxp.y, view_box.view_box.minp.y);
 }
 
 
@@ -219,28 +250,46 @@ void Renderer2D::Draw()
 		{
 			case C_RectCol:
 			{
-//				int num_vertex = m_mesher.vcount();
-//				int num_index = m_mesher.icount();
-//				bgfx::TransientVertexBuffer tvb;
-//				bgfx::TransientIndexBuffer tib;
-//
-//				bgfx::allocTransientVertexBuffer(&tvb, num_vertex, m_vertexSpec);
-//				bgfx::allocTransientIndexBuffer(&tib, num_index);
-//
-//				memcpy(tvb.data, m_mesher.vptr(), num_vertex * sizeof(Vertex));
-//				memcpy(tib.data, m_mesher.iptr(), num_index * sizeof(uint16_t));
-//
-//				m_mesher.PrimReset();
-//
-//				bgfx::setVertexBuffer(0, &tvb, 0, num_vertex);
-//				bgfx::setIndexBuffer(&tib, 0, num_index);
-//
-//				uint64_t state = 0
-//				                 | BGFX_STATE_WRITE_RGB
-//				                 | BGFX_STATE_BLEND_FUNC(BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_INV_SRC_ALPHA);
-//				bgfx::setState(state);
-//
-//				bgfx::submit(ViewIds::GUI, m_programCol->GetHandle(), 0);
+				int num_vertex = m_mesher.vcount();
+				int num_index = m_mesher.icount();
+
+				GLint id;
+				glGetIntegerv(GL_CURRENT_PROGRAM, &id);
+
+				glDisable(GL_DEPTH_TEST);
+				glDisable(GL_SCISSOR_TEST);
+				glEnable(GL_BLEND);
+				glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
+				glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
+
+				m_program->Use();
+				glUniformMatrix4fv(m_uniform_transform, 1, GL_FALSE, &m_prj[0][0]);
+
+				glBindBuffer(GL_ARRAY_BUFFER, m_vertexBufferHandle);
+				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indexBufferHandle);
+
+				m_vertexSpec.Enable();
+
+				glBufferData(GL_ARRAY_BUFFER, num_vertex * sizeof(Vertex), m_mesher.vptr(), GL_DYNAMIC_DRAW);
+				glBufferData(GL_ELEMENT_ARRAY_BUFFER, num_index * sizeof(int), m_mesher.iptr(), GL_DYNAMIC_DRAW);
+
+				m_mesher.PrimReset();
+
+				if (num_vertex > 2)
+				{
+					glDrawElements(GL_TRIANGLES, (GLsizei)num_index, GL_UNSIGNED_SHORT, 0); //m_indexArray.data());
+				}
+
+				glBindBuffer(GL_ARRAY_BUFFER, 0);
+				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+				m_vertexSpec.Disable();
+
+				//auto r = std::static_pointer_cast<TextBackend>(m_text_backend);
+				//r->m_transform = m_prj;
+				//m_text_driver.Render();
+
+				glUseProgram(id);
 			}
 			break;
 			case C_RectTex:

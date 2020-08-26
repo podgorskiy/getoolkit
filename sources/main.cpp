@@ -7,6 +7,8 @@
 #include "simpletext.h"
 #include "Render/GLDebugMessage.h"
 #include "Render/Shader.h"
+#include "2DEngine/Renderer2D.h"
+#include "2DEngine/Encoder.h"
 #include "Render/VertexSpec.h"
 #include "Render/VertexBuffer.h"
 #include <glm/ext/matrix_transform.hpp>
@@ -257,6 +259,8 @@ namespace pth
 		Render::Uniform u_modelViewProj;
 		Render::Uniform u_world_size;
 		SimpleTextPtr m_text;
+
+		Render::Renderer2D m_2drender;
 	};
 }
 
@@ -467,6 +471,8 @@ void pth::Context::Init(int width, int height, const std::string& name)
 		m_spec = Render::VertexSpecMaker().PushType<glm::vec2>("a_position");
 
 		m_text.reset(new SimpleText);
+
+		m_2drender.Init();
 	}
 }
 
@@ -579,6 +585,14 @@ void pth::Context::Render()
 		nvgRestore(vg);
 		nvgEndFrame(vg);
 	}
+	auto c2w_transform = m_camera.GetCanvasToWorld();
+
+	using Render::operator""_c;
+	m_2drender.GetEncoder()->Rect(glm::aabb2(c2w_transform * glm::vec3(0.,  0., 1.), c2w_transform * glm::vec3(110., 160., 1.0)), 0xFF33FFFF_c, glm::vec4(4.0));
+
+	Render::View view_box(glm::vec2(m_width, m_height), 72);
+	m_2drender.SetUp(view_box);
+	m_2drender.Draw();
 
 	m_text->EnableBlending(true);
 	m_text->Render();

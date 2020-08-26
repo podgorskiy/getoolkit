@@ -4,6 +4,7 @@
 #include "View.h"
 #include "Vertices.h"
 #include "Render/Shader.h"
+#include "Render/VertexSpec.h"
 #include "utils/aabb.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -42,7 +43,14 @@ namespace Render
 		Render::ProgramPtr m_programCol;
 		Render::ProgramPtr m_programTex;
 		Render::Uniform u_texture;
-//		bgfx::VertexLayout m_vertexSpec;
+		Render::Uniform u_transform;
+		Render::VertexSpec m_vertexSpec;
 		Scriber::IRenderAPIPtr m_text_backend;
+
+		glm::mat4 m_prj;
+		unsigned int m_uniform_transform;
+		Render::ProgramPtr m_program;
+		uint32_t m_vertexBufferHandle;
+		uint32_t m_indexBufferHandle;
 	};
 }
