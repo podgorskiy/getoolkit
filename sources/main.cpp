@@ -653,6 +653,10 @@ void pth::Context::Render()
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 
+	Render::View view_box(glm::vec2(m_width, m_height), 72);
+	m_2drender.SetUp(view_box);
+	m_2drender.Draw();
+
 	{
 		auto transform = m_camera.GetCanvasToWorld();
 
@@ -680,10 +684,6 @@ void pth::Context::Render()
 
 	//using Render::operator""_c;
 	//m_2drender.GetEncoder()->Rect(glm::aabb2(c2w_transform * glm::vec3(0.,  0., 1.), c2w_transform * glm::vec3(110., 160., 1.0)), 0xFF33FFFF_c, glm::vec4(4.0));
-
-	Render::View view_box(glm::vec2(m_width, m_height), 72);
-	m_2drender.SetUp(view_box);
-	m_2drender.Draw();
 
 	m_text->EnableBlending(true);
 	m_text->Render();

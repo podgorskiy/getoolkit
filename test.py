@@ -48,6 +48,10 @@ class App(getoolkit.App):
             with open(SAVE_PATH, 'rb') as f:
                 self.root_nodes = pickle.load(f)
         self.copied_node = None
+        self.point_set = np.asarray([])
+        self.point_ref = []
+        self.hovered_point = None
+        self.moving_point = None
 
     def new_node(self):
         if self.selected_node is not None:
@@ -162,13 +166,21 @@ class App(getoolkit.App):
             self.selected_node.pos_y = nposy.value
             self.selected_node.color = (int(255 * ncolor.x), int(255 * ncolor.y), int(255 * ncolor.z), int(255 * ncolor.w))
 
-
     def draw(self):
+        point_set = []
+        point_ref = []
+
         def dnodes(l, p_pox=0, p_poy=0):
             for n in l:
                 minp = getoolkit.vec2(n.pos_x + p_pox, n.pos_y + p_poy)
+                point_set.append(minp)
+                point_ref.append((n, 0, p_pox, p_poy))
+
                 minp = self.transform(minp)
                 maxp = getoolkit.vec2(n.pos_x + n.width + p_pox, n.pos_y + n.height + p_poy)
+                point_set.append(maxp)
+                point_ref.append((n, 1, p_pox, p_poy))
+
                 maxp = self.transform(maxp)
                 self.encoder.rect(minp, maxp, n.color)
 
@@ -177,6 +189,12 @@ class App(getoolkit.App):
 
         dnodes(self.root_nodes)
 
+        self.point_set = np.asarray([(p.x, p.y) for p in point_set])
+        self.point_ref = point_ref
+
+        for i, p in enumerate(self.point_set):
+            if i == self.hovered_point:
+                self.point(*p, (255, 90, 90, 250), radius=5)
 
         # if k in self.annotation:
         #     self.text("Points count %d" % len(self.annotation[k]), 10, 50)
@@ -207,8 +225,28 @@ class App(getoolkit.App):
                 return i
         return None
 
+    def set_moving_point(self, lx, ly):
+        n, p, p_pos_x, p_pos_y = self.point_ref[self.moving_point]
+        if p == 0:
+            other = n.pos_x + n.width, n.pos_y + n.height
+            n.pos_x = lx - p_pos_x
+            n.pos_y = ly - p_pos_y
+            n.width = other[0] - n.pos_x
+            n.height = other[1] - n.pos_y
+
+        if p == 1:
+            n.width = lx - p_pos_x - n.pos_x
+            n.height = ly - p_pos_y - n.pos_y
+
     def on_mouse_button(self, down, x, y, lx, ly):
-        pass
+        if down:
+            if self.hovered_point is not None:
+                self.moving_point = self.hovered_point
+        if not down:
+            if self.moving_point is not None:
+                self.set_moving_point(*self.cursor_pos_world)
+                self.moving_point = None
+
         # k = self.paths[self.iter]
         # if down and self.nearest is not None:
         #     self.moving = self.nearest
@@ -227,10 +265,9 @@ class App(getoolkit.App):
     def on_mouse_position(self, x, y, lx, ly):
         self.cursor_pos_window = (x, y)
         self.cursor_pos_world = self.grid_snap((lx, ly))
-        # self.nearest = self.get_nearset(lx, ly)
-        # if self.moving is not None:
-        #     k = self.paths[self.iter]
-        #     self.annotation[k][self.moving] = (lx, ly)
+        self.hovered_point = self.get_nearset(self.point_set, lx, ly)
+        if self.moving_point is not None:
+            self.set_moving_point(*self.cursor_pos_world)
 
     def on_keyboard(self, key, down, mods):
         if down:
