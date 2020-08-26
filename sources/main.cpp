@@ -59,163 +59,6 @@ typedef std::shared_ptr<SimpleText> SimpleTextPtr;
 
 namespace pth
 {
-	class Image
-	{
-	public:
-		Image& operator=(const Image&) = delete;
-
-		Image(const Image&) = delete;
-
-		Image()
-		{
-			glGenTextures(1, &m_textureHandle);
-			m_width = -1;
-			m_height = -1;
-		}
-
-		Image(std::vector<ndarray_uint8> ims)
-		{
-			glGenTextures(1, &m_textureHandle);
-			m_width = -1;
-			m_height = -1;
-			SetImage(ims);
-		}
-
-		~Image()
-		{
-			glDeleteTextures(1, &m_textureHandle);
-		}
-
-		GLuint GetHandle() const
-		{
-			return m_textureHandle;
-		}
-
-		void GrayScaleToAlpha()
-		{
-			GLint swizzleMask[] = {GL_ONE, GL_ONE, GL_ONE, GL_RED};
-			glBindTexture(GL_TEXTURE_2D, m_textureHandle);
-			glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask);
-			glBindTexture(GL_TEXTURE_2D, 0);
-		}
-
-		glm::vec2 GetSize() const
-		{
-			return glm::vec2(m_width, m_height);
-		}
-
-		ssize_t m_width;
-		ssize_t m_height;
-
-		void SetImage(std::vector<ndarray_uint8> ims)
-		{
-			Render::debug_guard<> m_guard;
-			const py::buffer_info& ndarray_info = ims[0].request();
-			glBindTexture(GL_TEXTURE_2D, m_textureHandle);
-
-			GLint backup;
-			glGetIntegerv(GL_UNPACK_ALIGNMENT, &backup);
-			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-			GLint swizzleMask_R[] = {GL_RED, GL_RED, GL_RED, GL_ONE};
-			GLint swizzleMask_RG[] = {GL_RED, GL_GREEN, GL_ZERO, GL_ONE};
-			GLint swizzleMask_RGB[] = {GL_RED, GL_GREEN, GL_BLUE, GL_ONE};
-			GLint swizzleMask_RGBA[] = {GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA};
-
-			if (ndarray_info.ndim == 2)
-			{
-				m_width = ndarray_info.shape[1];
-				m_height = ndarray_info.shape[0];
-				glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask_R);
-				int mipmap = 0;
-				for (auto im: ims)
-				{
-					glTexImage2D(GL_TEXTURE_2D, mipmap, GL_R8, im.request().shape[1], im.request().shape[0], 0, GL_RED,
-					             GL_UNSIGNED_BYTE, im.request().ptr);
-					mipmap += 1;
-				}
-			}
-			else if (ndarray_info.ndim == 3)
-			{
-				m_width = ndarray_info.shape[1];
-				m_height = ndarray_info.shape[0];
-				if (ndarray_info.shape[2] == 1)
-				{
-					glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask_R);
-					int mipmap = 0;
-					for (auto im: ims)
-					{
-						glTexImage2D(GL_TEXTURE_2D, mipmap, GL_R8, im.request().shape[1], im.request().shape[0], 0,
-						             GL_RGB, GL_UNSIGNED_BYTE, im.request().ptr);
-						mipmap += 1;
-					}
-				}
-				else if (ndarray_info.shape[2] == 2)
-				{
-					glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask_RG);
-					int mipmap = 0;
-					for (auto im: ims)
-					{
-						glTexImage2D(GL_TEXTURE_2D, mipmap, GL_RG8, im.request().shape[1], im.request().shape[0], 0,
-						             GL_RG, GL_UNSIGNED_BYTE, im.request().ptr);
-						mipmap += 1;
-					}
-				}
-				else if (ndarray_info.shape[2] == 3)
-				{
-					glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask_RGB);
-					int mipmap = 0;
-					for (auto im: ims)
-					{
-						glTexImage2D(GL_TEXTURE_2D, mipmap, GL_SRGB8, im.request().shape[1], im.request().shape[0], 0,
-						             GL_RGB, GL_UNSIGNED_BYTE, im.request().ptr);
-						mipmap += 1;
-					}
-				}
-				else if (ndarray_info.shape[2] == 4)
-				{
-					glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask_RGBA);
-					int mipmap = 0;
-					for (auto im: ims)
-					{
-						glTexImage2D(GL_TEXTURE_2D, mipmap, GL_SRGB8_ALPHA8, im.request().shape[1],
-						             im.request().shape[0], 0, GL_RGBA, GL_UNSIGNED_BYTE, im.request().ptr);
-						mipmap += 1;
-					}
-				}
-				else
-				{
-					glBindTexture(GL_TEXTURE_2D, 0);
-					glPixelStorei(GL_UNPACK_ALIGNMENT, backup);
-					throw runtime_error("Wrong number of channels. Should be either 1, 2, 3, or 4, but got %d",
-					                    (int) ndarray_info.shape[2]);
-				}
-			}
-			else
-			{
-				glBindTexture(GL_TEXTURE_2D, 0);
-				glPixelStorei(GL_UNPACK_ALIGNMENT, backup);
-				throw runtime_error("Wrong number of dimensions. Should be either 2 or 3, but got %d",
-				                    (int) ndarray_info.ndim);
-			}
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			if (ims.size() > 1)
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-			else
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-			glPixelStorei(GL_UNPACK_ALIGNMENT, backup);
-			glBindTexture(GL_TEXTURE_2D, 0);
-		}
-
-		GLuint m_textureHandle;
-	};
-
-	typedef std::shared_ptr<Image> ImagePtr;
-
 	class Context
 	{
 	public:
@@ -682,9 +525,6 @@ void pth::Context::Render()
 	}
 	auto c2w_transform = m_camera.GetCanvasToWorld();
 
-	//using Render::operator""_c;
-	//m_2drender.GetEncoder()->Rect(glm::aabb2(c2w_transform * glm::vec3(0.,  0., 1.), c2w_transform * glm::vec3(110., 160., 1.0)), 0xFF33FFFF_c, glm::vec4(4.0));
-
 	m_text->EnableBlending(true);
 	m_text->Render();
 
@@ -805,18 +645,6 @@ void pth::Context::Box(float minx, float miny, float maxx, float maxy, std::tupl
 PYBIND11_MODULE(_getoolkit, m) {
 	m.doc() = "getoolkit";
 
-//		void PushScissors(glm::aabb2 box);
-//
-//		void PopScissors();
-//
-//		void Rect(glm::aabb2 rect, color c, glm::vec4 radius = glm::vec4(0));
-//
-//		void Rect(glm::aabb2 rect, TexturePtr texture, glm::aabb2 uv = glm::aabb2(glm::vec2(1.0), glm::vec2(0.0)), glm::vec4 radius = glm::vec4(0));
-//
-//		void Rect(glm::aabb2 rect, const glm::mat3& transform, TexturePtr texture, glm::aabb2 uv = glm::aabb2(glm::vec2(1.0), glm::vec2(0.0)));
-//
-//		void Text(glm::aabb2 rect, const char* text, size_t len = 0);
-
 	py::class_<glm::vec2>(m, "vec2")
 	    .def(py::init<float, float>())
 	    .def(py::init<float>())
@@ -830,6 +658,56 @@ PYBIND11_MODULE(_getoolkit, m) {
 	    .def(py::self *= float{})
 	    .def(py::self * float{})
 	    .def(py::self *= py::self)
+	    ;
+
+	py::class_<glm::vec3>(m, "vec3")
+	    .def(py::init<float, float, float>())
+	    .def(py::init<float>())
+	    .def(py::init<>())
+		.def_readwrite("x", &glm::vec3::x)
+		.def_readwrite("y", &glm::vec3::y)
+		.def_readwrite("z", &glm::vec3::z)
+	    .def(py::self == py::self)
+	    .def(py::self != py::self)
+	    .def(py::self += py::self)
+	    .def(py::self + py::self)
+	    .def(py::self *= float{})
+	    .def(py::self * float{})
+	    .def(py::self *= py::self)
+	    ;
+
+	py::class_<glm::vec4>(m, "vec4")
+	    .def(py::init<float, float, float, float>())
+	    .def(py::init<float>())
+	    .def(py::init<>())
+		.def_readwrite("x", &glm::vec4::x)
+		.def_readwrite("y", &glm::vec4::y)
+		.def_readwrite("z", &glm::vec4::z)
+		.def_readwrite("w", &glm::vec4::w)
+	    .def(py::self == py::self)
+	    .def(py::self != py::self)
+	    .def(py::self += py::self)
+	    .def(py::self + py::self)
+	    .def(py::self *= float{})
+	    .def(py::self * float{})
+	    .def(py::self *= py::self)
+	    ;
+
+	py::class_<Render::color>(m, "color")
+	    .def(py::init<int, int, int, int>())
+	    .def(py::init<int>())
+	    .def(py::init<>())
+		.def_readwrite("r", &Render::color::r)
+		.def_readwrite("g", &Render::color::g)
+		.def_readwrite("b", &Render::color::b)
+		.def_readwrite("a", &Render::color::a)
+//	    .def(py::self == py::self)
+//	    .def(py::self != py::self)
+//	    .def(py::self += py::self)
+//	    .def(py::self + py::self)
+//	    .def(py::self *= int{})
+//	    .def(py::self * int{})
+//	    .def(py::self *= py::self)
 	    ;
 
 	py::class_<glm::aabb2>(m, "aabb2")
@@ -846,12 +724,24 @@ PYBIND11_MODULE(_getoolkit, m) {
 		.def("is_negative", &glm::aabb2::is_negative)
 		;
 
+//		void PushScissors(glm::aabb2 box);
+//
+//		void PopScissors();
+//
+//		void Rect(glm::aabb2 rect, color c, glm::vec4 radius = glm::vec4(0));
+//
+//		void Rect(glm::aabb2 rect, TexturePtr texture, glm::aabb2 uv = glm::aabb2(glm::vec2(1.0), glm::vec2(0.0)), glm::vec4 radius = glm::vec4(0));
+//
+//		void Rect(glm::aabb2 rect, const glm::mat3& transform, TexturePtr texture, glm::aabb2 uv = glm::aabb2(glm::vec2(1.0), glm::vec2(0.0)));
+//
+//		void Text(glm::aabb2 rect, const char* text, size_t len = 0);
+
 	py::class_<Render::Encoder>(m, "Encoder")
 		.def(py::init())
 		.def("push_scissors", &Render::Encoder::PushScissors)
 		.def("pop_scissors", &Render::Encoder::PopScissors)
-		.def("rect", [](Render::Encoder& self, glm::vec2 minp, glm::vec2 maxp, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color){ self.Rect({minp, maxp}, Render::color(std::get<0>(color), std::get<1>(color), std::get<2>(color), std::get<3>(color))); })
-		.def("rect", [](Render::Encoder& self, glm::vec2 minp, glm::vec2 maxp, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> c, glm::vec4 radius){ self.Rect({minp, maxp}, Render::color(std::get<0>(c), std::get<1>(c), std::get<2>(c), std::get<3>(c)), radius); })
+		.def("rect", [](Render::Encoder& self, glm::vec2 minp, glm::vec2 maxp, Render::color c){ self.Rect({minp, maxp}, c); })
+		.def("rect", [](Render::Encoder& self, glm::vec2 minp, glm::vec2 maxp, Render::color c, glm::vec4 radius){ self.Rect({minp, maxp}, c, radius); })
 		;
 
 	py::class_<pth::Context>(m, "Context")
@@ -985,10 +875,10 @@ PYBIND11_MODULE(_getoolkit, m) {
 			.value("Center", SimpleText::CENTER)
 			.value("Right", SimpleText::RIGHT)
 			.export_values();
-
-	py::class_<pth::Image, std::shared_ptr<pth::Image> >(m, "Image")
-			.def(py::init<std::vector<ndarray_uint8>>(), "")
-			.def("grayscale_to_alpha", &pth::Image::GrayScaleToAlpha, "For grayscale images, uses values as alpha")
-			.def_readonly("width", &pth::Image::m_width)
-			.def_readonly("height", &pth::Image::m_height);
+//
+//	py::class_<pth::Image, std::shared_ptr<pth::Image> >(m, "Image")
+//			.def(py::init<std::vector<ndarray_uint8>>(), "")
+//			.def("grayscale_to_alpha", &pth::Image::GrayScaleToAlpha, "For grayscale images, uses values as alpha")
+//			.def_readonly("width", &pth::Image::m_width)
+//			.def_readonly("height", &pth::Image::m_height);
 }

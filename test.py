@@ -3,7 +3,6 @@ import imageio
 import os
 import pickle
 import numpy as np
-import random
 import bimpy
 import random
 
@@ -21,6 +20,7 @@ class Node(object):
         self.pos_x = 0.
         self.pos_y = 0.
         self.color = (127, 127, 230, 240)
+        self.radius = getoolkit.vec4(0.)
 
 
 class App(getoolkit.App):
@@ -158,6 +158,11 @@ class App(getoolkit.App):
         ncolor = bimpy.Vec4(*[x / 255. for x in self.selected_node.color] if has_selection else (0, 0, 0, 0))
         bimpy.color_edit("Color", ncolor)
 
+        nradius = [self.selected_node.radius.x, self.selected_node.radius.y, self.selected_node.radius.z, self.selected_node.radius.w] if has_selection else [0., 0., 0., 0.]
+        nradius = [bimpy.Float(x) for x in nradius]
+
+        bimpy.input_float4("radius", *nradius)
+
         if has_selection:
             self.selected_node.name = nstr.value
             self.selected_node.width = nwidth.value
@@ -165,6 +170,7 @@ class App(getoolkit.App):
             self.selected_node.pos_x = nposx.value
             self.selected_node.pos_y = nposy.value
             self.selected_node.color = (int(255 * ncolor.x), int(255 * ncolor.y), int(255 * ncolor.z), int(255 * ncolor.w))
+            self.selected_node.radius = getoolkit.vec4(*[x.value for x in nradius])
 
     def draw(self):
         point_set = []
@@ -182,7 +188,7 @@ class App(getoolkit.App):
                 point_ref.append((n, 1, p_pox, p_poy))
 
                 maxp = self.transform(maxp)
-                self.encoder.rect(minp, maxp, n.color)
+                self.encoder.rect(minp, maxp, getoolkit.color(*n.color), n.radius * float(self.scale))
 
                 if len(n.children) != 0:
                     dnodes(n.children, n.pos_x + p_pox, n.pos_y + p_poy)
