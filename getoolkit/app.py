@@ -14,6 +14,7 @@
 # ==============================================================================
 
 import getoolkit
+import bimpy
 
 
 class App:
@@ -78,6 +79,7 @@ class App:
         self._ctx.set_keyboard_callback(keyboard)
         self.keys = {}
         self.image = None
+        bimpy.inject_imgui_context(self._ctx.get_imgui())
 
     def run(self):
         """Runs the application.
@@ -347,6 +349,18 @@ class App:
         minx, miny = box[0]
         maxx, maxy = box[1]
         self._ctx.box(minx, miny, maxx, maxy, color_stroke, color_fill)
+
+    @property
+    def ctrl_v(self):
+        return self._ctx.ctrl_v
+
+    @property
+    def ctrl_c(self):
+        return self._ctx.ctrl_c
+
+    @property
+    def ctrl_x(self):
+        return self._ctx.ctrl_x
 
     @property
     def width(self):

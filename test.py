@@ -15,7 +15,7 @@ class Node(object):
     def __init__(self, name='', children=None):
         self.name = name
         self.children = children if children is not None else []
-        self.id = random.randint(0, 2^64)
+        self.id = random.randint(0, 1000000)
 
 
 class App(getoolkit.App):
@@ -42,6 +42,7 @@ class App(getoolkit.App):
         if os.path.exists(SAVE_PATH):
             with open(SAVE_PATH, 'rb') as f:
                 self.root_nodes = pickle.load(f)
+        self.copied_node = None
 
     def new_node(self):
         if self.selected_node is not None:
@@ -74,8 +75,10 @@ class App(getoolkit.App):
             self.new_node()
 
         def pnodes(l):
+            remove_n = None
+
             for n in l:
-                node_flags = bimpy.OpenOnArrow | bimpy.OpenOnDoubleClick
+                node_flags = bimpy.OpenOnArrow | bimpy.OpenOnDoubleClick | bimpy.DefaultOpen
                 if n == self.selected_node:
                     node_flags |= bimpy.Selected
 
@@ -89,16 +92,32 @@ class App(getoolkit.App):
                     else:
                         self.selected_node = n
 
+                if self.selected_node is not None and self.selected_node == n and self.ctrl_x:
+                    self.copied_node = n
+                    self.selected_node = None
+                    remove_n = n
+
                 if node_open and len(n.children) != 0:
                     pnodes(n.children)
                     bimpy.tree_pop()
 
+            if remove_n is not None:
+                l.remove(remove_n)
+
+        if self.copied_node is not None and self.selected_node is not None and self.ctrl_v:
+            self.selected_node.children.append(self.copied_node)
+            self.copied_node = None
+
         pnodes(self.root_nodes)
 
-        if self.selected_node is not None:
-            str = bimpy.String(self.selected_node.name)
-            bimpy.input_text('Name', str, 256)
-            self.selected_node.name = str.value
+        has_selection = self.selected_node is not None
+
+        nstr = bimpy.String(self.selected_node.name if has_selection else '')
+        bimpy.input_text('Name', nstr, 256)
+        if has_selection:
+            self.selected_node.name = nstr.value
+
+        bimpy.text("ID: %s" % (str(self.selected_node.id) if has_selection else ''))
 
         # if k in self.annotation:
         #     self.text("Points count %d" % len(self.annotation[k]), 10, 50)

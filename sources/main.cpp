@@ -2,6 +2,14 @@
  * Copyright 2017-2020 Stanislav Pidhorskyi. All rights reserved.
  * License: https://raw.githubusercontent.com/podgorskiy/bimpy/master/LICENSE.txt
  */
+
+#define IMGUI_DISABLE_OBSOLETE_FUNCTIONS
+#define IMGUI_DEFINE_MATH_OPERATORS
+#include "imgui.h"
+#include "imgui_internal.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+
 #include "Camera2D.h"
 #include "Render/DebugRenderer.h"
 #include "simpletext.h"
@@ -15,6 +23,7 @@
 #include "Vector/nanovg.h"
 #include "Vector/nanovg_backend.h"
 #include "runtime_error.h"
+
 #define DOCTEST_CONFIG_IMPLEMENT
 #include <doctest.h>
 #include <GL/gl3w.h>
@@ -261,6 +270,14 @@ namespace pth
 		SimpleTextPtr m_text;
 
 		Render::Renderer2D m_2drender;
+		struct ImGuiContext* m_imgui;
+
+		bool m_ctrl_c_down = false;
+		bool m_ctrl_c_released = false;
+		bool m_ctrl_v_down = false;
+		bool m_ctrl_v_released = false;
+		bool m_ctrl_x_down = false;
+		bool m_ctrl_x_released = false;
 	};
 }
 
@@ -310,6 +327,12 @@ void pth::Context::Init(int width, int height, const std::string& name)
 			throw runtime_error("GL3W initialization failed.\nThis may happen if you try to run bimpy on a headless machine ");
 		}
 
+		m_imgui = ImGui::CreateContext();
+		GImGui = m_imgui;
+
+		ImGui_ImplGlfw_InitForOpenGL(m_window, false);
+		ImGui_ImplOpenGL3_Init(glsl_version);
+
 		Render::debug_guard<> m_guard;
 		m_dr.Init();
 
@@ -317,6 +340,34 @@ void pth::Context::Init(int width, int height, const std::string& name)
 
 		m_width = width;
 		m_height = height;
+
+		ImGuiIO& io = ImGui::GetIO();
+		io.KeyMap[ImGuiKey_Tab] = GLFW_KEY_TAB;
+		io.KeyMap[ImGuiKey_LeftArrow] = GLFW_KEY_LEFT;
+		io.KeyMap[ImGuiKey_RightArrow] = GLFW_KEY_RIGHT;
+		io.KeyMap[ImGuiKey_UpArrow] = GLFW_KEY_UP;
+		io.KeyMap[ImGuiKey_DownArrow] = GLFW_KEY_DOWN;
+		io.KeyMap[ImGuiKey_PageUp] = GLFW_KEY_PAGE_UP;
+		io.KeyMap[ImGuiKey_PageDown] = GLFW_KEY_PAGE_DOWN;
+		io.KeyMap[ImGuiKey_Home] = GLFW_KEY_HOME;
+		io.KeyMap[ImGuiKey_End] = GLFW_KEY_END;
+		io.KeyMap[ImGuiKey_Insert] = GLFW_KEY_INSERT;
+		io.KeyMap[ImGuiKey_Delete] = GLFW_KEY_DELETE;
+		io.KeyMap[ImGuiKey_Backspace] = GLFW_KEY_BACKSPACE;
+		io.KeyMap[ImGuiKey_Space] = GLFW_KEY_SPACE;
+		io.KeyMap[ImGuiKey_Enter] = GLFW_KEY_ENTER;
+		io.KeyMap[ImGuiKey_Escape] = GLFW_KEY_ESCAPE;
+		io.KeyMap[ImGuiKey_A] = GLFW_KEY_A;
+		io.KeyMap[ImGuiKey_C] = GLFW_KEY_C;
+		io.KeyMap[ImGuiKey_V] = GLFW_KEY_V;
+		io.KeyMap[ImGuiKey_X] = GLFW_KEY_X;
+		io.KeyMap[ImGuiKey_Y] = GLFW_KEY_Y;
+		io.KeyMap[ImGuiKey_Z] = GLFW_KEY_Z;
+
+		io.ConfigFlags |= 0
+				| ImGuiConfigFlags_NavEnableGamepad
+				| ImGuiConfigFlags_NavEnableKeyboard
+				;
 
 		glfwSetWindowUserPointer(m_window, this); // replaced m_imp.get()
 
@@ -330,18 +381,58 @@ void pth::Context::Init(int width, int height, const std::string& name)
 		{
 			Context* ctx = static_cast<Context*>(glfwGetWindowUserPointer(window));
 
-			ctx->keyboard_callback(key, action, mods);
+		    ImGuiContext& g = *GImGui;
+			if (!(g.NavWindow != NULL))
+			{
+				ctx->keyboard_callback(key, action, mods);
+			}
+			else
+			{
+				ImGuiIO& io = ImGui::GetIO();
+				if (action == GLFW_PRESS)
+				{
+					io.KeysDown[key] = true;
+				}
+				if (action == GLFW_RELEASE)
+				{
+					io.KeysDown[key] = false;
+				}
+
+				io.KeyCtrl = io.KeysDown[GLFW_KEY_LEFT_CONTROL] || io.KeysDown[GLFW_KEY_RIGHT_CONTROL];
+				io.KeyShift = io.KeysDown[GLFW_KEY_LEFT_SHIFT] || io.KeysDown[GLFW_KEY_RIGHT_SHIFT];
+				io.KeyAlt = io.KeysDown[GLFW_KEY_LEFT_ALT] || io.KeysDown[GLFW_KEY_RIGHT_ALT];
+				io.KeySuper = io.KeysDown[GLFW_KEY_LEFT_SUPER] || io.KeysDown[GLFW_KEY_RIGHT_SUPER];
+			}
 		});
 
-		glfwSetCharCallback(m_window, [](GLFWwindow*, unsigned int c)
+		glfwSetCharCallback(m_window, [](GLFWwindow* window, unsigned int c)
 		{
+		    ImGuiContext& g = *GImGui;
+			if (!(g.NavWindow != NULL))
+			{
+				Context* ctx = static_cast<Context*>(glfwGetWindowUserPointer(window));
+				//ctx->OnSetChar(c);
+			}
+			else
+			{
+				ImGuiIO& io = ImGui::GetIO();
+				io.AddInputCharacter((unsigned short) c);
+			}
 		});
 
 		glfwSetScrollCallback(m_window, [](GLFWwindow* window, double /*xoffset*/, double yoffset)
 		{
 			Context* ctx = static_cast<Context*>(glfwGetWindowUserPointer(window));
-
-			ctx->m_camera.Scroll(float(-yoffset));
+		    ImGuiContext& g = *GImGui;
+			if (!(g.NavWindow != NULL))
+			{
+				ctx->m_camera.Scroll(float(-yoffset));
+			}
+			else
+			{
+				ImGuiIO& io = ImGui::GetIO();
+				io.MouseWheel += (float) yoffset * 2.0f;
+			}
 		});
 
 		glfwSetMouseButtonCallback(m_window, [](GLFWwindow* window, int button, int action, int /*mods*/)
@@ -597,6 +688,10 @@ void pth::Context::Render()
 	m_text->EnableBlending(true);
 	m_text->Render();
 
+	glDisable(GL_FRAMEBUFFER_SRGB);
+	ImGui::Render();
+	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
 	glfwSwapInterval(1);
 	glfwSwapBuffers(m_window);
 	glfwPollEvents();
@@ -613,10 +708,23 @@ void pth::Context::NewFrame()
 
 	glfwMakeContextCurrent(m_window);
 	Render::debug_guard<> m_guard;
+	glEnable(GL_FRAMEBUFFER_SRGB);
 	glViewport(0, 0, m_width, m_height);
 	glClear(GL_COLOR_BUFFER_BIT);
-	glEnable(GL_FRAMEBUFFER_SRGB);
 	nvgBeginFrame(vg, m_width, m_height, 1.0f);
+
+	GImGui = m_imgui;
+	ImGui_ImplOpenGL3_NewFrame();
+	ImGui_ImplGlfw_NewFrame();
+	ImGui::NewFrame();
+	ImGui::ShowDemoWindow();
+
+	m_ctrl_c_released = m_ctrl_c_down && ! (ImGui::GetIO().KeyCtrl && ImGui::GetIO().KeysDown[GLFW_KEY_C]);
+	m_ctrl_c_down = ImGui::GetIO().KeyCtrl && ImGui::GetIO().KeysDown[GLFW_KEY_C];
+	m_ctrl_v_released = m_ctrl_v_down && ! (ImGui::GetIO().KeyCtrl && ImGui::GetIO().KeysDown[GLFW_KEY_V]);
+	m_ctrl_v_down = ImGui::GetIO().KeyCtrl && ImGui::GetIO().KeysDown[GLFW_KEY_V];
+	m_ctrl_x_released = m_ctrl_x_down && ! (ImGui::GetIO().KeyCtrl && ImGui::GetIO().KeysDown[GLFW_KEY_X]);
+	m_ctrl_x_down = ImGui::GetIO().KeyCtrl && ImGui::GetIO().KeysDown[GLFW_KEY_X];
 }
 
 
@@ -852,7 +960,12 @@ PYBIND11_MODULE(_getoolkit, m) {
 		})
 		.def("get_encoder", [](pth::Context& self){ return self.m_2drender.GetEncoder(); }, py::return_value_policy::reference)
 		.def("point",  &pth::Context::Point, py::arg("x"), py::arg("y"), py::arg("color"), py::arg("radius") = 5)
-		.def("box",  &pth::Context::Box);
+		.def("get_imgui", [](pth::Context& self) { return (void*)self.m_imgui; })
+		.def("box",  &pth::Context::Box)
+		.def_readonly("ctrl_c",  &pth::Context::m_ctrl_c_released)
+		.def_readonly("ctrl_x",  &pth::Context::m_ctrl_x_released)
+		.def_readonly("ctrl_v",  &pth::Context::m_ctrl_v_released)
+		;
 
 		py::enum_<SpecialKeys>(m, "SpecialKeys")
 			.value("KeyEscape", KeyEscape)
