@@ -442,7 +442,7 @@ void pth::Context::Init(int width, int height, const std::string& name)
 			void main()
 			{
 				vec2 q = v_pos * vec2(0.5, 0.5) + vec2(0.5);
-				q *= (u_world_size + 1);
+				q *= (u_world_size + 1.);
 				q -= 0.5;
 				make_grid(gl_FragColor, q);
 			}
@@ -697,6 +697,55 @@ void pth::Context::Box(float minx, float miny, float maxx, float maxy, std::tupl
 PYBIND11_MODULE(_getoolkit, m) {
 	m.doc() = "getoolkit";
 
+//		void PushScissors(glm::aabb2 box);
+//
+//		void PopScissors();
+//
+//		void Rect(glm::aabb2 rect, color c, glm::vec4 radius = glm::vec4(0));
+//
+//		void Rect(glm::aabb2 rect, TexturePtr texture, glm::aabb2 uv = glm::aabb2(glm::vec2(1.0), glm::vec2(0.0)), glm::vec4 radius = glm::vec4(0));
+//
+//		void Rect(glm::aabb2 rect, const glm::mat3& transform, TexturePtr texture, glm::aabb2 uv = glm::aabb2(glm::vec2(1.0), glm::vec2(0.0)));
+//
+//		void Text(glm::aabb2 rect, const char* text, size_t len = 0);
+
+	py::class_<glm::vec2>(m, "vec2")
+	    .def(py::init<float, float>())
+	    .def(py::init<float>())
+	    .def(py::init<>())
+		.def_readwrite("x", &glm::vec2::x)
+		.def_readwrite("y", &glm::vec2::y)
+	    .def(py::self == py::self)
+	    .def(py::self != py::self)
+	    .def(py::self += py::self)
+	    .def(py::self + py::self)
+	    .def(py::self *= float{})
+	    .def(py::self * float{})
+	    .def(py::self *= py::self)
+	    ;
+
+	py::class_<glm::aabb2>(m, "aabb2")
+		.def(py::init())
+		.def(py::init<glm::vec2>())
+		.def(py::init<glm::vec2, glm::vec2>())
+		.def_readwrite("minp", &glm::aabb2::minp)
+		.def_readwrite("maxp", &glm::aabb2::maxp)
+		.def("size", &glm::aabb2::size)
+		.def("center", &glm::aabb2::center)
+		.def("set", &glm::aabb2::set)
+		.def("reset", &glm::aabb2::reset)
+		.def("is_positive", &glm::aabb2::is_positive)
+		.def("is_negative", &glm::aabb2::is_negative)
+		;
+
+	py::class_<Render::Encoder>(m, "Encoder")
+		.def(py::init())
+		.def("push_scissors", &Render::Encoder::PushScissors)
+		.def("pop_scissors", &Render::Encoder::PopScissors)
+		.def("rect", [](Render::Encoder& self, glm::vec2 minp, glm::vec2 maxp, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color){ self.Rect({minp, maxp}, Render::color(std::get<0>(color), std::get<1>(color), std::get<2>(color), std::get<3>(color))); })
+		.def("rect", [](Render::Encoder& self, glm::vec2 minp, glm::vec2 maxp, std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> c, glm::vec4 radius){ self.Rect({minp, maxp}, Render::color(std::get<0>(c), std::get<1>(c), std::get<2>(c), std::get<3>(c)), radius); })
+		;
+
 	py::class_<pth::Context>(m, "Context")
 		.def(py::init())
 		.def("init", &pth::Context::Init, "Initializes context and creates window")
@@ -773,6 +822,12 @@ PYBIND11_MODULE(_getoolkit, m) {
 			glm::vec2 pos = transform * glm::vec3(pos_local, 1);
 			return std::tuple<float, float>(pos.x, pos.y);
 		})
+		.def("loc_2_win", [](pth::Context& self, glm::vec2 pos_local)
+		{
+			auto transform = self.m_camera.GetCanvasToWorld();
+			glm::vec2 pos = transform * glm::vec3(pos_local, 1);
+			return pos;
+		})
 		.def("win_2_loc", [](pth::Context& self, float x, float y)
 		{
 			auto transform = self.m_camera.GetWorldToCanvas();
@@ -795,6 +850,7 @@ PYBIND11_MODULE(_getoolkit, m) {
 			self.m_text->Label(str, pos.x, pos.y, align);
 			self.m_text->ResetFont();
 		})
+		.def("get_encoder", [](pth::Context& self){ return self.m_2drender.GetEncoder(); }, py::return_value_policy::reference)
 		.def("point",  &pth::Context::Point, py::arg("x"), py::arg("y"), py::arg("color"), py::arg("radius") = 5)
 		.def("box",  &pth::Context::Box);
 

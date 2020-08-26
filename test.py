@@ -49,6 +49,8 @@ class App(getoolkit.App):
 
         self.point(*self.cursor_pos_world, (230, 10, 10, 240), radius=2.)
 
+        self.encoder.rect(self.transform(getoolkit.vec2(0., 0.)), self.transform(getoolkit.vec2(400., 400.)), (200, 100, 150, 200))
+
         # if k in self.annotation:
         #     self.text("Points count %d" % len(self.annotation[k]), 10, 50)
         #     for i, p in enumerate(self.annotation[k]):

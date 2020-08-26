@@ -305,6 +305,18 @@ class App:
         """
         return self._ctx.loc_2_win(x, y)
 
+    def transform(self, p):
+        """Convert image space to window space
+
+        Arguments:
+            x (float): x coordinate of the text in image space
+            y (float): y coordinate of the text in image space
+
+        Returns:
+            tuple[float, float] - x, y coordinates in window space
+        """
+        return self._ctx.loc_2_win(p)
+
     @property
     def scale(self):
         """Returns `scale` - change of length when transform from image space to window space
@@ -315,6 +327,10 @@ class App:
             float - scale
         """
         return self._ctx.get_scale()
+
+    @property
+    def encoder(self):
+        return self._ctx.get_encoder()
 
     def box(self, box, color_stroke, color_fill):
         """Draw a box
