@@ -20,6 +20,7 @@ class Node(object):
         self.height = 10.
         self.pos_x = 0.
         self.pos_y = 0.
+        self.color = (127, 127, 230, 240)
 
 
 class App(getoolkit.App):
@@ -73,8 +74,31 @@ class App(getoolkit.App):
 
         self.point(*self.cursor_pos_world, (230, 10, 10, 240), radius=2.)
 
+        bimpy.begin('Editor')
+        bimpy.columns(2)
+        bimpy.begin_child('Scene', bimpy.Vec2(0, 300))
+        self.scene_tree()
+        bimpy.end_child()
+        bimpy.next_column()
+        self.object_inspector()
+        self.draw()
+        bimpy.end()
+
+    def walk(self, l, f):
+        f(l)
+        for n in l:
+            self.walk(n.children, f)
+
+    def scene_tree(self):
         if bimpy.button("New Node"):
             self.new_node()
+        bimpy.same_line()
+        if bimpy.button("Delete Node"):
+            if self.selected_node is not None:
+                def rem(l):
+                    if self.selected_node in l:
+                        l.remove(self.selected_node)
+                self.walk(self.root_nodes, rem)
 
         def pnodes(l):
             remove_n = None
@@ -112,7 +136,9 @@ class App(getoolkit.App):
 
         pnodes(self.root_nodes)
 
+    def object_inspector(self):
         has_selection = self.selected_node is not None
+        bimpy.text("ID: %s" % (str(self.selected_node.id) if has_selection else ''))
 
         nstr = bimpy.String(self.selected_node.name if has_selection else '')
         bimpy.input_text('Name', nstr, 256)
@@ -125,22 +151,26 @@ class App(getoolkit.App):
         nposy = bimpy.Float(self.selected_node.pos_y if has_selection else 0.)
         bimpy.input_float2('position', nposx, nposy)
 
+        ncolor = bimpy.Vec4(*[x / 255. for x in self.selected_node.color] if has_selection else (0, 0, 0, 0))
+        bimpy.color_edit("Color", ncolor)
+
         if has_selection:
             self.selected_node.name = nstr.value
             self.selected_node.width = nwidth.value
             self.selected_node.height = nheigth.value
             self.selected_node.pos_x = nposx.value
             self.selected_node.pos_y = nposy.value
+            self.selected_node.color = (int(255 * ncolor.x), int(255 * ncolor.y), int(255 * ncolor.z), int(255 * ncolor.w))
 
-        bimpy.text("ID: %s" % (str(self.selected_node.id) if has_selection else ''))
 
+    def draw(self):
         def dnodes(l, p_pox=0, p_poy=0):
             for n in l:
                 minp = getoolkit.vec2(n.pos_x + p_pox, n.pos_y + p_poy)
                 minp = self.transform(minp)
                 maxp = getoolkit.vec2(n.pos_x + n.width + p_pox, n.pos_y + n.height + p_poy)
                 maxp = self.transform(maxp)
-                self.encoder.rect(minp, maxp, (200, 100, 150, 200))
+                self.encoder.rect(minp, maxp, n.color)
 
                 if len(n.children) != 0:
                     dnodes(n.children, n.pos_x + p_pox, n.pos_y + p_poy)
