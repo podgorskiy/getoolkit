@@ -2,7 +2,7 @@
 # See build_maylinux_wheels.sh
 
 git clone --depth 1 https://github.com/podgorskiy/getoolkit.git
-cd anntoolkit
+cd getoolkit
 git submodule update --init  --depth 1
 cd libs/glfw
 git pull origin master
