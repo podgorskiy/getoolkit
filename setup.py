@@ -8,6 +8,7 @@ from distutils.errors import *
 from distutils.dep_util import newer_group
 from distutils import log
 from distutils.command.build_ext import build_ext
+from distutils.ccompiler import CCompiler
 
 from codecs import open
 import os
@@ -15,6 +16,34 @@ import sys
 import platform
 import re
 import glob
+import multiprocessing
+from multiprocessing.pool import ThreadPool as Pool
+
+
+def compile(self, sources, output_dir=None, macros=None,
+                include_dirs=None, debug=0, extra_preargs=None,
+                extra_postargs=None, depends=None):
+    macros, objects, extra_postargs, pp_opts, build = \
+        self._setup_compile(output_dir, macros, include_dirs, sources,
+                            depends, extra_postargs)
+    cc_args = self._get_cc_args(pp_opts, debug, extra_preargs)
+
+    def f(x):
+        try:
+            src, ext = build[x]
+        except KeyError:
+            return
+
+        self._compile(x, src, ext, cc_args, extra_postargs, pp_opts)
+
+    pool = Pool(processes=6)
+    pool.map(f, objects)
+
+    return objects
+
+
+CCompiler.compile = compile
+
 
 sys._argv = sys.argv[:]
 sys.argv=[sys.argv[0], '--root', 'libs/gl3w/']
@@ -185,10 +214,18 @@ imgui = [
     ,"libs/imgui/imgui_widgets.cpp"
 ]
 
+yaml = list(glob.glob('libs/yaml-cpp/src/**/**.c*', recursive=True))
+fsal = list(glob.glob('libs/fsal/sources/**/**.c*', recursive=True))
+lz4 = list(glob.glob('libs/lz4/lib/lz4*.c'))
+scriberlib = list(glob.glob('libs/scriberlib/sources/**/**.c*', recursive=True)) + list(glob.glob('libs/scriberlib/3rdparty/**/**.c*', recursive=True))
+
+
+definitions_all = [('HAVE_OT', 1), ('HB_NO_MT', 1), ('HAVE_FREETYPE', 1), ('HAVE_UCDN', 1)]
+
 definitions = {
-    'darwin': [("_GLFW_COCOA", 1)],
-    'posix': [("GLFW_USE_OSMESA", 0), ("GLFW_USE_WAYLAND", 0), ("GLFW_USE_MIR", 0), ("_GLFW_X11", 1)],
-    'win32': [("GLFW_USE_HYBRID_HPG", 0), ("_GLFW_WIN32", 1), ("_CRT_SECURE_NO_WARNINGS", 1), ("NOMINMAX", 1)],
+    'darwin': [("_GLFW_COCOA", 1)] + definitions_all,
+    'posix': [("GLFW_USE_OSMESA", 0), ("GLFW_USE_WAYLAND", 0), ("GLFW_USE_MIR", 0), ("_GLFW_X11", 1)] + definitions_all,
+    'win32': [("GLFW_USE_HYBRID_HPG", 0), ("_GLFW_WIN32", 1), ("_CRT_SECURE_NO_WARNINGS", 1), ("NOMINMAX", 1)] + definitions_all,
 }
 
 libs = {
@@ -215,10 +252,10 @@ extra_compile_cpp_args = {
     'win32': [],
 }
 
-sources = list(glob.glob('sources/*.c*')) + list(glob.glob('sources/Vector/*.c*'))
+sources = list(glob.glob('sources/**/**.c*', recursive=True))
 
 extension = Extension("_getoolkit",
-                             sources + imgui + glfw + glfw_platform[target_os] + ["libs/gl3w/src/gl3w.c"],
+                             sources + imgui + yaml + fsal + lz4 + scriberlib + glfw + glfw_platform[target_os] + ["libs/gl3w/src/gl3w.c"],
                              define_macros = definitions[target_os],
                              include_dirs=[
                                  "sources",
@@ -228,6 +265,18 @@ extension = Extension("_getoolkit",
                                  "libs/spdlog/include",
                                  "libs/glm",
                                  "libs/pybind11/include",
+                                 "libs/stb",
+                                 "libs/lz4/lib",
+                                 "libs/fsal/sources",
+                                 "libs/scriberlib/include",
+                                 "libs/scriberlib/3rdparty",
+                                 "libs/scriberlib/3rdparty/harfbuzz",
+                                 "libs/scriberlib/3rdparty/harfbuzz/hb-ucdn",
+                                 "libs/scriberlib/3rdparty/freetype",
+                                 "libs/scriberlib/3rdparty/utf8",
+                                 "libs/scriberlib/3rdparty/xxhash",
+                                 "libs/scriberlib/3rdparty/minibidi",
+                                 "libs/yaml-cpp/include",
                                  "libs/imgui",
                                  "libs/gl3w/include"],
                              extra_compile_args=extra_compile_args[target_os],
@@ -239,13 +288,13 @@ extension.extra_compile_cpp_args = extra_compile_cpp_args[target_os]
 setup(
     name='getoolkit',
 
-    version='0.0.5',
+    version='0.0.6',
 
     description='getoolkit',
     long_description=long_description,
     long_description_content_type='text/markdown',
 
-    url='https://github.com/podgorskiy/anntoolkit',
+    url='https://github.com/podgorskiy/getoolkit',
 
     author='Stanislav Pidhorskyi',
     author_email='stpidhorskyi@mix.wvu.edu',

@@ -48,8 +48,12 @@ PVRReader::PVRReader(fsal::File file): file(file), version(-1), flags(0), channe
 	file.Read(version);
 
 	file.Read(flags);
-	file.Read((uint64_t&)pixelFormat);
-	file.Read((uint32_t&)colourSpace);
+	uint64_t _pixelFormat;
+	file.Read(_pixelFormat);
+	pixelFormat = (TextureFormat::Format)_pixelFormat;
+	uint32_t _colourSpace;
+	file.Read(_colourSpace);
+	colourSpace = (TextureFormat::ColourSpace)_colourSpace;
 	file.Read(channelType);
 	file.Read(height);
 	file.Read(width);

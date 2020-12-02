@@ -29,8 +29,11 @@ void Path::Path90Arc(const glm::vec2& center, float radius, ArcType type)
 
 	int num_segments = int(0.5f + 5.2f / 4.0f * (float)powf(radius - 0.8f, 0.53f));
 	num_segments = std::min(num_segments, 180);
-	num_segments = std::max(num_segments, 1);
-
+	if (num_segments < 1)
+	{
+		m_path.push_back(center);
+		return;
+	}
 
 	m_path.reserve(m_path.size() + (num_segments + 1));
 	for (int i = 0; i <= num_segments; i++)

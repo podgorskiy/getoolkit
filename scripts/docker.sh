@@ -1,7 +1,7 @@
 # Script to build wheels for manylinux. This script runs inside docker.
 # See build_maylinux_wheels.sh
 
-git clone --depth 1 https://github.com/podgorskiy/anntoolkit.git
+git clone --depth 1 https://github.com/podgorskiy/getoolkit.git
 cd anntoolkit
 git submodule update --init  --depth 1
 cd libs/glfw

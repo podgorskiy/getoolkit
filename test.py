@@ -5,6 +5,7 @@ import pickle
 import numpy as np
 import bimpy
 import random
+from getoolkit import *
 
 LIBRARY_PATH = 'images'
 SAVE_PATH = 'save.pth'
@@ -77,6 +78,30 @@ class App(getoolkit.App):
         y += 30
 
         self.point(*self.cursor_pos_world, (230, 10, 10, 240), radius=2.)
+
+        plt = vec2(-0.035, -0.045)
+        pmt = vec2(0.56, 0.31)
+        prt = vec2(0.862, 0.0421)
+        plm = vec2(0.039, -0.3)
+        prm = vec2(0.87, -0.088)
+        plb = vec2(0.31, -0.35)
+        pmb = vec2(0.55, -0.35)
+        prb = vec2(0.84, -0.25)
+
+        self._ctx.nvgBeginPath()
+        self._ctx.nvgScale(vec2(1000.))
+        self._ctx.nvgTranslate(vec2(1.))
+        self._ctx.nvgScale(vec2(1., -1.))
+
+        self._ctx.nvgMoveTo(plt)
+        self._ctx.nvgQuadTo(plm, plb)
+        self._ctx.nvgQuadTo(pmb, prb)
+        self._ctx.nvgQuadTo(prm, prt)
+        self._ctx.nvgQuadTo(pmt, plt)
+        self._ctx.nvgClosePath()
+        self._ctx.nvgFillColor(vec4(0.73, 0.78, 0.83, 1.))
+        self._ctx.nvgFill()
+
 
         bimpy.begin('Editor')
         bimpy.columns(2)

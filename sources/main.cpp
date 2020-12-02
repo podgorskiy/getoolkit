@@ -40,6 +40,7 @@
 namespace py = pybind11;
 
 typedef py::array_t<uint8_t, py::array::c_style> ndarray_uint8;
+typedef py::array_t<float, py::array::c_style> ndarray_float;
 
 enum SpecialKeys
 {
@@ -855,6 +856,27 @@ PYBIND11_MODULE(_getoolkit, m) {
 		.def_readonly("ctrl_c",  &pth::Context::m_ctrl_c_released)
 		.def_readonly("ctrl_x",  &pth::Context::m_ctrl_x_released)
 		.def_readonly("ctrl_v",  &pth::Context::m_ctrl_v_released)
+
+		.def("nvgBeginPath",  [](pth::Context& self) { nvgBeginPath(self.vg); })
+		.def("nvgFillColor",  [](pth::Context& self, glm::vec4 c) { nvgFillColor(self.vg, c); })
+		.def("nvgStrokeColor",  [](pth::Context& self, glm::vec4 c) { nvgStrokeColor(self.vg, c); })
+		.def("nvgStrokeWidth",  [](pth::Context& self, float w) { nvgStrokeWidth(self.vg, w); })
+
+		.def("nvgFill",  [](pth::Context& self) { nvgFill(self.vg); })
+		.def("nvgStroke",  [](pth::Context& self) { nvgStroke(self.vg); })
+		.def("nvgResetTransform",  [](pth::Context& self) { nvgStroke(self.vg); })
+		.def("nvgRotate",  [](pth::Context& self, float a) { nvgRotate(self.vg, a); })
+		.def("nvgScale",  [](pth::Context& self, glm::vec2 x) { nvgScale(self.vg, x.x, x.y); })
+		.def("nvgTranslate",  [](pth::Context& self, glm::vec2 x) { nvgTranslate(self.vg, x.x, x.y); })
+		.def("nvgScissor",  [](pth::Context& self, glm::aabb2 x) { nvgScissor(self.vg, x.minp.x, x.minp.y, x.size().x, x.size().y); })
+		.def("nvgResetScissor",  [](pth::Context& self, glm::aabb2 x) { nvgResetScissor(self.vg); })
+		.def("nvgMoveTo",  [](pth::Context& self, glm::vec2 x) { nvgMoveTo(self.vg, x.x, x.y); })
+		.def("nvgLineTo",  [](pth::Context& self, glm::vec2 x) { nvgLineTo(self.vg, x.x, x.y); })
+		.def("nvgQuadTo",  [](pth::Context& self, glm::vec2 c, glm::vec2 e) { nvgQuadTo(self.vg, c.x, c.y, e.x, e.y); })
+		.def("nvgBezierTo",  [](pth::Context& self, glm::vec2 c1, glm::vec2 c2, glm::vec2 e) { nvgBezierTo(self.vg, c1.x, c1.y, c2.x, c2.y, e.x, e.y); })
+		.def("nvgClosePath",  [](pth::Context& self) { nvgClosePath(self.vg); })
+		.def("nvgPathWinding",  [](pth::Context& self, int d) { nvgPathWinding(self.vg, d); })
+		.def("nvgRect",  [](pth::Context& self, glm::aabb2 d) { nvgRect(self.vg, d); })
 		;
 
 		py::enum_<SpecialKeys>(m, "SpecialKeys")
@@ -875,7 +897,9 @@ PYBIND11_MODULE(_getoolkit, m) {
 			.value("Center", SimpleText::CENTER)
 			.value("Right", SimpleText::RIGHT)
 			.export_values();
-//
+
+
+
 //	py::class_<pth::Image, std::shared_ptr<pth::Image> >(m, "Image")
 //			.def(py::init<std::vector<ndarray_uint8>>(), "")
 //			.def("grayscale_to_alpha", &pth::Image::GrayScaleToAlpha, "For grayscale images, uses values as alpha")
