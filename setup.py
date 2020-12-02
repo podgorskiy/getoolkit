@@ -16,7 +16,6 @@ import sys
 import platform
 import re
 import glob
-import multiprocessing
 from multiprocessing.pool import ThreadPool as Pool
 
 
@@ -267,6 +266,7 @@ extension = Extension("_getoolkit",
                                  "libs/pybind11/include",
                                  "libs/stb",
                                  "libs/lz4/lib",
+                                 "libs/zlib",
                                  "libs/fsal/sources",
                                  "libs/scriberlib/include",
                                  "libs/scriberlib/3rdparty",
